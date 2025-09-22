@@ -1,0 +1,27 @@
+[project]
+name = "survey-dimension-reduction"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "inflection>=0.5.1",
+    "matplotlib>=3.10.3",
+    "plotnine>=0.14.5",
+    "plotnine-theme",
+    "polars>=1.30.0",
+    "polars-utils>=0.1.13",
+    "pyarrow>=20.0.0",
+    "pyreadstat>=1.2.9",
+    "requests>=2.32.3",
+    "rich>=14.0.0",
+    "scipy>=1.15.3",
+]
+
+[dependency-groups]
+dev = [
+    "ipython>=9.3.0",
+]
+
+[tool.uv.sources]
+plotnine-theme = { path = "../plotnine_theme", editable = true }

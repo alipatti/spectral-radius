@@ -1,0 +1,257 @@
+\documentclass[titlepage, theorems]{ali-base}
+
+\usepackage[backend=bibtex, style=numeric]{biblatex}
+\addbibresource{refs.bib}
+
+\usepackage{pgf}
+\usepackage{pgfkeys}
+\usepackage{pgfmath}
+
+\usepackage{pdflscape}
+
+\title{Polarization}
+
+\author{Alistair Pattison}
+\date{Fall 2025}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+	\todo{write this}
+\end{abstract}
+
+\todo{standardize notation for dimension}
+\todo{standardize theorem environments}
+
+\section{Introduction}
+
+We first motivate the developmenet of a new measure of opinion polarization.
+
+Develop a plug-in type estimator and prove some things about it (consistency and asymptotic normality).
+
+Show that this measure observes interesting things in the data. (E.g. polarization on particular issues.)
+
+\todo{situate this in other literature}
+
+% https://www.nytimes.com/2025/08/29/opinion/american-politics-center.html
+
+\section{The Spectral Radius as a Measure of Polarization}
+
+on one single issue, polarization can be characterized by some measure of scale (e.g. variance) or tail heaviness (e.g. kurtosis).
+
+in the real world, we don't observe latent ``polarization''
+
+need to generalize this to multiple
+
+"locked in a zero-sum struggle along a single “us-vs-them” dimension"
+% https://d1y8sb8igg2f8e.cloudfront.net/documents/The_Case_for_Fusion_Voting_and_a_Multiparty_Democracy_in_America_2022.pdf
+
+\subsection{Setup and Definition}
+
+Let $X_1,\dots,X_n \in \mathbb{R}^p$ be i.i.d.\ observations from some $p$-dimensional distribution with mean $0$ and covariance matrix $\Sigma$.
+Define the sample covariance matrix $\widehat S_n \ceq \frac 1n \sum_i X_i X_i \trans$.
+\todo{do we want $n-1$ in denom?}
+
+Let $\lambda_1 \geq \lambda_2 \geq \cdots \geq \lambda_p \geq 0$ be the eigenvalues of $\Sigma$ and $\hat\lambda_1 \ge \hat\lambda_2 \ge \cdots \ge \hat\lambda_p$ the eigenvalues of $\widehat S_n$.
+
+Define $r = \rho(\Sigma)$ to be the spectral radius of $\Sigma$ and $\hat r_n = \rho(\widehat S_n)$ the spectral radius of the sample covariance matrix.
+
+There are several ways to think about this
+\begin{itemize}
+	\item the maximum eigenvalue of the covariance matrix,
+	\item the maximum eigenvalue of the covariance matrix,
+	\item the proportion of variance explained by the first principal component,
+	\item oblong-ness of the data elipsoid
+\end{itemize}
+
+Advantages of this over other approaches
+\todo{citations}
+\begin{itemize}
+	\item it's model-free (e.g. doesn't require ideal point model, makes no distributional requirements of the data)
+	\item easily allows imposition of a model via the covariance matrix estimation if that's desired (e.g. sparsity structure of covariance matrix, shrinkage of covariance matrix)
+	\item allows us to tap into PCA/random matrix theory
+	\item reduces to well-understood measure in one dimension (variance)
+	\item computationally tractable
+	\item gracefully handles missing data (very common in surveys) \todo{link to where we explain this in the application section}
+\end{itemize}
+
+Disadvantages
+\todo{citations}
+\begin{itemize}
+	\item different sets of questions are incomparable
+\end{itemize}
+
+\subsection{Relationship to Polarization in a Single Dimension}
+
+There is a two-way relationship between
+
+The first proposition follows immediately from definition (one-by-one matrices are trivially diagonalized). The second
+
+\begin{proposition}
+\end{proposition}
+
+
+\begin{proposition}
+	\label{thm:one-dim-implies-multiple-dim}
+	Let $x \sim \mathcal F(a)$ be a person's latent one-dimensional position modeled as random variable with finite variance $a \in \R$.
+	Let $\beta \in \R^d$ be the sensitivity of each of issue to this latent position such that her revealed positions with respect to individual policies are
+	\begin{equation}
+		y = \beta x + \epsilon;
+		\hspace{1in}
+		\Var(\epsilon) = \Gamma \in \R^{d \times d}.
+	\end{equation}
+	Let $\Sigma = \Var(y)$ and $r = \rho(\Sigma)$.
+	Then, $r$ is non-decreasing with respect to $a$.
+\end{proposition}
+
+Note that this proposition is quite flexible: we make no assumptions about the latent distribution other than it has a finite second moment. The error term is also allowed to take any form---in particular it can have complex non-diagonal covariance structure.
+
+We first establish a few lemmas that greatly simiplify the proof. The first is regarding the spectral radius of a positive rank-one update to a positive semidefinite matrix, which we prove as conesequence of Weyl's inequalities \cite{weyl-1912-inequalities}. This result is very similar in flavor those of \todo{section number?} \textcite{golub-1973-eigenvalues}. We then leverage this to prove our proposition and close with a discussion of two suffcient conditions under which the phrase "non-decreasing" on the last line of \autoref{thm:one-dim-implies-multiple-dim} becomes "strictly increasing".
+
+\begin{lemma}
+	\label{lem:rank-one-update}
+	If $D \in \R^{n \times n}$ is symmetric and positive semidefinite, $v \in \R^n$, and $c \geq 0$, then
+	\begin{equation}
+		\rho(c v v \trans + D) \geq \rho(D).
+	\end{equation}
+\end{lemma}
+
+\begin{proof}
+
+	See \textcite[\S 5]{golub-1973-eigenvalues}.
+	% \todo{do we want to spell out the proof from Weyl's inequalities?
+	% https://nhigham.com/2021/03/09/eigenvalue-inequalities-for-hermitian-matrices/
+\end{proof}
+
+\begin{lemma}
+	\label{lem:rank-one-update-increasing}
+	Let the setup be the same as in \autoref{lem:rank-one-update}. Then $\rho(c v v \trans + D)$ is non-decreasing with respect to $c$.
+\end{lemma}
+
+\begin{proof}
+	Let $\epsilon > 0$. Then,
+	\begin{equation}
+		\begin{aligned}
+			\rho((c + \epsilon) v v \trans + D)
+			\ = \ \rho(\epsilon v v \trans + (c v v \trans + D))
+			\ \geq \ \rho(c v v \trans + D)
+		\end{aligned}
+	\end{equation}
+	by \autoref{lem:rank-one-update} because $c v v \trans + D \succeq 0$ by the closure of positive semidefinite matrices under addition.
+\end{proof}
+
+Proof of the original result is now quite simple:
+
+\begin{proof}[Proof of \autoref{thm:one-dim-implies-multiple-dim}]
+	The spectral radius of $\Sigma$ is
+	\begin{equation}
+		\rho(\Sigma)
+		\ = \ \rho(\Var(\beta x + \epsilon))
+		\ = \ \rho(a \beta \beta \trans + \Gamma)
+	\end{equation}
+	Because $\Gamma$ is a covariance matrix, it's symmetric and positive semidefinite and \autoref{lem:rank-one-update-increasing} gives us that $\rho(\sigma)$ is non-decreasing in $a$ as desired.
+\end{proof}
+
+Strict increase if $\beta$ nontrivially projects onto the first eigenspace of $\Gamma$. This happens on all but a measure zero subset of possible $(\beta, \Gamma)$ pairs.
+\todo{confim this}
+
+\begin{proposition}
+	If $a = \Var(x) > \rho(\Gamma) = r$, then $r$ is \emph{strictly increasing} with respect to $a$.
+\end{proposition}
+
+\begin{corollary}
+	There exists some $a > 0$ after which $r$ is strictly increasing.
+\end{corollary}
+
+\subsection{Estimating the Spectral Radius}
+
+Can leverage a lot of PCA theory going back to \textcite{anderson-1963-pca-asymptotics}. For an overview, see \textcite{jolliffe-2002-pca} or \textcite{zagidullina-2021-random-matrix-theory}.
+
+\subsubsection{Asymptotics}
+
+See \textcite{anderson-2003-multivariate} for more.
+
+\begin{proposition}[Consistency of sample eigenvalues]
+	The sample eigenvalues $\hat \lambda_i$ are consistent estimates of the population eigenvalues $\lambda_i$.
+\end{proposition}
+
+\begin{proof}
+	We prove the stronger notion of almost-sure convergence. The (strong) law of large numbers gives almost-sure convergence of the covariance matrix $\widehat S_n \overset{a.s.}{\to} \Sigma$. The set of eigenvalues is a continuous function of a matrices entries \cite[Ch. 2, Th. 5.14, p. 118]{kato-1980-perturbation}, so the continuous mapping theorem yields that $\hat \lambda_i \overset{a.s.}{\to} \lambda_i$.
+\end{proof}
+
+\begin{proposition}[Asymptotic normality of sample eigenvalues]
+	Let $X_1,\dots,X_n \in \mathbb{R}^p$ be i.i.d.\ with mean $0$ and covariance $\Sigma$.
+	If $\Sigma$ has eigenvalues $\lambda_1 \geq \lambda_2 \geq \cdots \geq \lambda_p \geq 0$ with corresponding sample eigenvalues $\hat\lambda_1 \ge \hat\lambda_2 \ge \cdots \ge \hat\lambda_p$, then
+	\begin{equation}
+		\sqrt{n} \paren{\hat\lambda_i - \lambda_i}
+		\overset{\tiny d}{\longrightarrow}
+		N\!\paren{0,\;\sigma_i^2},
+		\qquad i=1,\dots,p.
+	\end{equation}
+	If $\set{X_i}$ are normally distributed, then $\sigma_i^2 = 2\lambda_i^2$. If not,
+	$\sigma_i^2$ depends (somewhat complexly) on the fourth cumulants of $X_i$.
+\end{proposition}
+
+The normal result is due to \textcite{anderson-1963-pca-asymptotics}. The non-normal case is due to \textcite{waternaux-1976-nonnormal-eigenvalues} and expanded upon by \textcite{eaton-1991-eigenvalues}. The non-normal case will be of most use to us because most survey data is decidedly not normal (e.g. binary response or multiple choice). \note{We'll probably have to bootstrap, but can take advantage of normality to produce standard errors instead of using the boostrap quantiles.}
+
+From these facts, it follows trivially that the largest sample eigenvalue $\hat \lambda_1$ is a consistent and asymptotically-normal estimator of the spectral radius.
+
+\subsubsection{Finite-Sample Overestimation}
+
+Finite sample estimates for $\hat \lambda_1$ will overestimate
+
+\todo{shrinkage?}
+
+\section{Application to the General Social Survey}
+
+\subsection{Data}
+
+\subsection{Methods}
+
+\subsubsection{Covariance Estimation}
+
+\subsubsection{Standard Errors}
+
+\subsection{Results}
+
+\subsubsection{By Geography}
+\subsubsection{By Race}
+\subsubsection{By Gender}
+\subsubsection{By Party}
+
+\begin{landscape}
+	\begin{figure}
+		\centering
+		\input{figure.pgf}
+		\caption{example figure}
+	\end{figure}
+\end{landscape}
+
+\section{Conclusion}
+
+\newpage
+
+\appendix
+
+\section{Alternative Measures of Spectral Polarization}
+
+\begin{itemize}
+	\item Spectral gap ($\lambda_1 - \lambda_2$):
+	      More noise, exhibits similar trends to spectral radius \todo{make a figure of this}
+	\item Trace of covariance matrix ($\sum \lambda_i$):
+	      Doesn't take into account covariance structure \todo{cite paper that uses this}
+	\item Determinant of covariance matrix ($\prod \lambda_i$, "generalized variance"):
+	      Maximized when eigenvalues are equal, minimized when any is zero. Much more noisy.
+	\item Snannon entropy of eigenvalues ($- \sum \lambda_i \log \lambda_i$):
+	      Measures "concentration" of spectrum. More complicated statistical behavior.
+	      "Smoother" version of determinant.
+	\item Variance explained by top two eigenvalues:
+	      Takes into account political compass two-d view of latent space
+\end{itemize}
+
+\printbibliography
+
+\end{document}
+

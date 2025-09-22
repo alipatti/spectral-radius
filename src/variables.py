@@ -1,21 +1,14 @@
 from itertools import product
 
-subset_to_study = dict(
-    freedom_of_speech=[
+subset_to_study = {
+    "Free Speech": [
         f"{a}{b}"
         for a, b in product(
             ("spk", "lib", "col"),
             ("ath", "mil", "rac", "homo", "mslm"),
         )
     ],
-    reproductive_rights=[
-        "pillok",
-    ]
-    + [
-        f"ab{reason}"
-        for reason in ("defect", "nomore", "hlth", "poor", "rape", "single", "any")
-    ],
-    government_spending=[
+    "Government Spending": [
         f"nat{expense}"
         for expense in (
             "spac",
@@ -44,39 +37,49 @@ subset_to_study = dict(
             # "armsy",
             # "aidy",
             # "farey",
-            "sci",
-            "chld",
+            # "sci",
+            # "chld",
         )
     ],
-    affirmative_action=[
+    "Affirmative Action": [
         "helpblk",
         "affrmact",
         "fejobaff",
         "fehire",
     ],
-    race=[f"racdif{i}" for i in (1, 2, 3, 4)]
+    "Race": [f"racdif{i}" for i in (1, 2, 3, 4)]
     + [
         "wrkwayup",
     ],
-    welfare=[
-        "aidhouse",
+    "Welfare": [
+        # "aidhouse", # not available enough
         "helpsick",
         "helppoor",
         "eqwlth",
     ],
-    police=[f"pol{action}" for action in ("hitok", "abuse", "murdr", "scap", "attaak")],
-    sex=[
+    "Police": [
+        f"pol{action}" for action in ("hitok", "abuse", "murdr", "escap", "attak")
+    ],
+    "Sex and Birth Control": [
+        # sex
         "premarsx",
         "xmarsex",
         "homosex",
-        "pornlaw",
+        # "pornlaw",
         "sexeduc",
         "teensex",
+        # birth control
+        "pillok",
     ],
-    misc=[
+    "Abortion": [
+        # abortion
+        f"ab{reason}"
+        for reason in ("defect", "nomore", "hlth", "poor", "rape", "single", "any")
+    ],
+    "Miscellaneous": [
         # political affiliation
-        "partyid",
-        "polviews",
+        # "partyid",
+        # "polviews",
         # guns
         "gunlaw",
         # religion
@@ -89,10 +92,10 @@ subset_to_study = dict(
         "courts",
         "cappun",
         # science
-        "advfront"
+        "advfront",
         # immigration
         "letin1a",
         # american dream
         "goodlife",
     ],
-)
+}

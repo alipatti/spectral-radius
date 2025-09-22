@@ -1,6 +1,9 @@
+from io import BytesIO
 from typing import Any
+from zipfile import ZipFile
 import requests
 import polars as pl
+import tempfile
 from itertools import chain
 import math
 from rich.progress import track
@@ -12,9 +15,9 @@ import inflection
 
 
 def load_gss_data(
-    raw_data_path=Path("data/raw/GSS_stata/gss7222_r3.dta"),
     clean_data_dir=Path("data/clean/gss"),
-    use_cache=False,
+    use_cache=True,
+    url="https://gss.norc.org/content/dam/gss/get-the-data/documents/stata/GSS_stata.zip",
 ) -> tuple[pl.DataFrame, pyreadstat.metadata_container]:
     """http://gss.norc.org/content/dam/gss/get-the-data/documents/stata/GSS_stata.zip"""
 
@@ -22,17 +25,25 @@ def load_gss_data(
     parquet_path = clean_data_dir / "gss.parquet"
 
     if not clean_data_dir.exists() or not use_cache:
-
         print("[bold][blue]Parquet GSS data not found. Creating it.")
 
-        print(" - Converting Stata data file...")
+        print(" - Downloading from gss.norc.org...")
+        with requests.get(url) as r:
+            z = ZipFile(BytesIO(r.content))
+
+            dta_path = z.extract(
+                next(f for f in z.filelist if f.filename.endswith(".dta")),
+                tempfile.mkdtemp(),
+            )
+
+        print(" - Converting Stata dta file...")
         df, metadata = pyreadstat.read_dta(
-            raw_data_path,
+            dta_path,
             encoding="LATIN1",
         )
 
         clean_data_dir.mkdir(parents=True, exist_ok=True)
-        print(" - Saving Polars dataframe...")
+        print(" - Saving parquet...")
         pl.from_pandas(df).write_parquet(parquet_path)
 
         print(" - Saving metadata...")
@@ -46,7 +57,6 @@ def label_gss_variables(
     metadata: pyreadstat.metadata_container,
     cols_to_label: list[str],
 ) -> pl.DataFrame:
-
     def _labels_to_list(colname, mapping):
         ints = [k for k in mapping.keys() if isinstance(k, int)]
         print(colname, max(ints, default=0), ints)
@@ -92,7 +102,6 @@ def get_all_gss_variables(
         return requests.post(api_url, json=default_request | kwargs).json()
 
     if not clean_parquet_file.exists() or not use_cache:
-
         total_variables = _make_gss_api_request()["totalVarCount"]
         vars_per_page = 100
         n_pages = math.ceil(total_variables / vars_per_page)
