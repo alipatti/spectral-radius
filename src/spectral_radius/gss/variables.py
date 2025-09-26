@@ -1,6 +1,6 @@
 from itertools import product
 
-subset_to_study = {
+VARIABLE_CATEGORIES = {
     "Free Speech": [
         f"{a}{b}"
         for a, b in product(
@@ -99,3 +99,6 @@ subset_to_study = {
         "goodlife",
     ],
 }
+
+
+ALL_VARIABLES = [v for vs in VARIABLE_CATEGORIES.values() for v in vs]

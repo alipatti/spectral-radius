@@ -1,5 +1,5 @@
 [project]
-name = "survey-dimension-reduction"
+name = "spectral-radius"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -25,3 +25,7 @@ dev = [
 
 [tool.uv.sources]
 plotnine-theme = { path = "../plotnine_theme", editable = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

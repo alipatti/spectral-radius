@@ -1,4 +1,15 @@
 import matplotlib as mpl
+from plotnine.facets import labeller
+import polars as pl
+import numpy as np
+from polars_utils.covariance import covariance_matrix
+import plotnine as pn
+from plotnine_theme import theme_ali
+
+from spectral_radius.gss import load_gss_data
+from spectral_radius.gss.variables import VARIABLE_CATEGORIES, ALL_VARIABLES
+from spectral_radius.variable_coding import scale_to_pm_1
+
 
 mpl.use("pgf")
 mpl.rcParams.update(
@@ -9,17 +20,6 @@ mpl.rcParams.update(
         "pgf.rcfonts": False,  # do not override with mpl defaults
     }
 )
-
-from plotnine.facets import labeller
-import polars as pl
-import numpy as np
-from polars_utils.covariance import covariance_matrix
-import plotnine as pn
-from plotnine_theme import theme_ali
-
-from src.data_prep import load_gss_data
-from src.variables import subset_to_study
-from src.variable_coding import scale_to_pm_1
 
 
 def spectral_radius(X: np.ndarray) -> float:
@@ -50,14 +50,12 @@ def measures(df: pl.DataFrame, *, w="w", columns: list[str]) -> pl.DataFrame:
 
 
 def main():
-    all_variables = [v for vs in subset_to_study.values() for v in vs]
-
     df = (
         load_gss_data(use_cache=True)[0]
         .select(
             "year",
             pl.col("wtssps").alias("w"),
-            pl.col(all_variables).pipe(scale_to_pm_1),
+            pl.col(ALL_VARIABLES).pipe(scale_to_pm_1),
         )
         .filter(pl.col("year") >= 1990)
     )
@@ -71,13 +69,16 @@ def main():
             ).select(df["year"].unique(), pl.lit(category).alias("category"), pl.all())
         )
         .sort("year")
-        for category, variables in subset_to_study.items()
+        for category, variables in VARIABLE_CATEGORIES.items()
     )
 
     # radius over time
     radius_over_time = (
         pn.ggplot(
-            rhos, # .with_columns((pl.col("rho") / pl.col("rho").mean()).over("category")),
+            rhos.with_columns(
+                # demean
+                pl.col("rho").pipe(lambda x: (x / x.mean()).over("category"))
+            ),
             pn.aes("year", "rho"),
         )
         + pn.geom_point(color="steelblue")
@@ -103,9 +104,9 @@ def main():
         + theme_ali()
     )
     radius_over_time.save(
-        "paper/figure.pgf",
+        "figures/polarization_by_category.pgf",
         width=11 - 3,
-        height=8.5 - 4,  # leave room for caption
+        height=8.5 - 3.5,  # leave room for caption
     )
 
     # proportion over time

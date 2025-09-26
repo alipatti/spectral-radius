@@ -36,7 +36,7 @@ def load_gss_data(
                 tempfile.mkdtemp(),
             )
 
-        print(" - Converting Stata dta file...")
+        print(" - Converting Stata dta file to parquet...")
         df, metadata = pyreadstat.read_dta(
             dta_path,
             encoding="LATIN1",
@@ -52,6 +52,7 @@ def load_gss_data(
     return pl.read_parquet(parquet_path), pickle.loads(metadata_path.read_bytes())
 
 
+# TODO: do we want to use this?
 def label_gss_variables(
     df: pl.DataFrame,
     metadata: pyreadstat.metadata_container,
