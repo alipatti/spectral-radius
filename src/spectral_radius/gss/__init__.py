@@ -15,7 +15,7 @@ import inflection
 
 
 def load_gss_data(
-    clean_data_dir=Path("data/clean/gss"),
+    clean_data_dir=Path("data/gss"),
     use_cache=True,
     url="https://gss.norc.org/content/dam/gss/get-the-data/documents/stata/GSS_stata.zip",
 ) -> tuple[pl.DataFrame, pyreadstat.metadata_container]:
@@ -79,7 +79,7 @@ def label_gss_variables(
 
 
 def get_all_gss_variables(
-    clean_parquet_file=Path("data/clean/gss/variables.parquet"),
+    clean_parquet_file=Path("data/gss/variables.parquet"),
     api_url=(
         "https://3ilfsaj2lj.execute-api.us-east-1.amazonaws.com/prod/variables/guest-search"
     ),

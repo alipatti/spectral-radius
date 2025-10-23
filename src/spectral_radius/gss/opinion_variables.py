@@ -1,6 +1,6 @@
 from itertools import product
 
-VARIABLE_CATEGORIES = {
+OPINION_CATEGORIES = {
     "Free Speech": [
         f"{a}{b}"
         for a, b in product(
@@ -101,4 +101,4 @@ VARIABLE_CATEGORIES = {
 }
 
 
-ALL_VARIABLES = [v for vs in VARIABLE_CATEGORIES.values() for v in vs]
+OPINION_VARIABLES = [v for vs in OPINION_CATEGORIES.values() for v in vs]
