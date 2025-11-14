@@ -1,0 +1,17 @@
+\appendix
+
+\section{Alternative Measures of Spectral Polarization}
+
+\begin{itemize}
+	\item Spectral gap ($\lambda_1 - \lambda_2$):
+	      More noise, exhibits similar trends to spectral radius \todo{make a figure of this}
+	\item Trace of covariance matrix ($\sum \lambda_i$):
+	      Doesn't take into account covariance structure \todo{cite paper that uses this}
+	\item Determinant of covariance matrix ($\prod \lambda_i$, "generalized variance"):
+	      Maximized when eigenvalues are equal, minimized when any is zero. Much more noisy.
+	\item Snannon entropy of eigenvalues ($- \sum \lambda_i \log \lambda_i$):
+	      Measures "concentration" of spectrum. More complicated statistical behavior.
+	      "Smoother" version of determinant.
+	\item Variance explained by top two eigenvalues:
+	      Takes into account political compass two-d view of latent space
+\end{itemize}
