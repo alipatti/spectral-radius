@@ -79,6 +79,7 @@ DEMOGRAPHIC_VARIABLES: dict[str, pl.Expr] = dict(
     # https://gssdataexplorer.norc.org/variables/119/vshow
     region=pl.col("region").replace_strict(
         {1: "Northeast", 2: "Midwest", 3: "South", 4: "West"},
+        default=None,
         return_dtype=pl.Categorical,
     ),
     # https://gssdataexplorer.norc.org/variables/120/vshow
