@@ -1,66 +1,69 @@
 \section{Measuring Polarization}
 
-On one single issue, polarization can be characterized by some measure of scale (e.g. variance) or tail heaviness (e.g. kurtosis).
+\inlinetodo{ways that other literature measures polarization}
 
-For binary data, variance corresponds to 
+We focus on idological polarization in the general public, not among politicians.
+We use survey data, not e.g. scraping opinions from Twitter (which measures something more affective).
 
-in the real world, we don't observe latent ``polarization''
+Begin by thinking about polarization on a single issue.
+The prevalence of extreme opinions alone is insufficient.
+For example, a question like ``on a scale from strongly support to strongly oppose, what is your opinion of slavery?'' would get nearly universal strong opposition, yet that issue is not polarizing in the way that one normally thinks about polarization.
+Nor would an increase in people stating strong opposition signal an increase in polarization.
 
-need to generalize this to multiple
+This shows that location alone is insufficient.
+We want to somehow capture strength of disagreement, we propose using the variance.
+This matches one's intuitive understanding:
+For binary data, variance is maximized with half of people indicating agreement and the other half indicating disagreement.
+More generally, for any compact $A \subseteq \R$, the random variable over $A$ with the highest variance has density
+equal to a half at the minimum and maximum of $A$ and $0$ elsewhere.
+% \begin{equation}
+% 	f(x) = \begin{cases}
+% 		\sfrac12 & \text{if $x = \max X$} \\
+% 		\sfrac12 & \text{if $x = \min X$} \\
+% 		0        & \otherwise.
+% 	\end{cases}
+% \end{equation}
+This matches our intuition: polarization is maxized when people's opinions are evenly split between two extreme positions.
+%
+The exact value of this measures is meaningless (it's sensitive to scaling), but we are still able to gain insight into changes over time.
 
-"locked in a zero-sum struggle along a single “us-vs-them” dimension"
-% https://d1y8sb8igg2f8e.cloudfront.net/documents/The_Case_for_Fusion_Voting_and_a_Multiparty_Democracy_in_America_2022.pdf
+This is for a single issue, but in reality people hold opinions on a wide variety of issues even within a single topic.
+For example, within the very narrow scope of abortion, there are a lot of potential questions that one may hold an opinion on:
+For example, should abortion be legal in the case of rape?
+What about in the case of incest?
+Past the first trimester?
+What if the mother's health is at risk?
+A good measure of polarization on abortion issues should take into account the spread of public opinion on all these scenarios.
 
-\begin{figure}
-	\centering
-	\label{fig:norm-comparison}
-	\begin{minipage}{.5\textwidth}
-		\includegraphics[width=\textwidth]
-			{./figures/examples/motivation/norm_illustration.pdf}%
-	\end{minipage}%
-	\hspace{.1\textwidth}
-	\begin{tabular}{r l | c | c}
-		\multicolumn{2}{c|}{Norm} & Expression & $p$ \\
-		\hline
-		Spectral  & $\norm \Sigma_2$ & $\max(a, b)$       & $\infty$ \\ 
-		Nuclear   & $\norm \Sigma_*$ & $a + b$            & $1$ \\ 
-		Frobenius & $\norm \Sigma_F$ & $\sqrt{a^2 + b^2}$ & $2$ \\ 
-	\end{tabular}
-	\caption{
-		The left-hand panel shows the ellipse $\set{ \mathbf x \trans \Sigma \mathbf x : \norm{\mathbf x} = 1 }$ induced by the matrix $\Sigma = \operatorname{diag}(2, 1)$.
-		The right-hand panel shows how the various matrix norms can be expressed as $p$-norms of the the matrix's eigenvalue vector, $(a, \, b) \trans$.
-	}
-\end{figure}
+A complete, but unfortunately high-dimensional and difficult-to-interpret, measure of spread is the covariane matrix $\Sigma = \paren{\Cov{X_i}{X_j}}_{ij}$.
+We'd like some single-dimensional summary measure of this matrices ``size''; the mathematical concept of a norm provides one solution.
+Unfortunately, there are many choices for norms in matrix spaces unlike in $\R^n$ where one almost-always uses the Euclidian $\mathcal L_2$ norm.
+On the cone of positive semidefinite matrices (to which all covariance matrices belong), common matrix norm choices include
+the nuclear norm (the trace),
+the spetral norm (the largest eigenvalue\footnote{For positive semidefinite matrices, the spectral norm is equal to the spectral radius, but this is not true in general.}),
+and the Frobenius norm (the Euclidian norm of the matrix's entries interpreted as a vector in $\R^n$).\footnote{There are obviously many other choices. Many are equivalent in our setting because we only care about covariance matrices which are always PSD and symmetric.}
+These initially appear totally odd and unmotivated measures of polarization, but they thankfully all admit nice interpretations in our setting.
 
-\begin{figure}
-	\centering
-	\label{fig:gss-example}
-	\includegraphics{./figures/examples/motivation/example.pdf}
-	\caption{
-		TODO: write 
-		% \todo{make axis labels smaller}
-	}
-\end{figure}
+The nuclear or trace norm is the most straightfoward:
+It's simply the sum of the variances of each individual dimension.
+This has the benefit of being easily interpretable, but considers each response independently and doesn't take into account any covaraiance structure between issues.
 
-\subsection{Setup and Definition}
+The spectral norm (a.k.a. $\mathcal L_2$ operator norm) $\norm \Sigma _2$ has a nice interpretation as the variance of the first principal component of the individual responses.
+This means that it combines information regarding how much variation there is on each individual issue \emph{and} how much the total variation projects onto a single dimension.
+This captures the notion that polarization is exacerbated when disagreement is along a single axis or, as described by \textcite{drutman-2022-multiparty}, when the public is ``locked in a zero-sum struggle along a single `us-vs-them' dimension''.
+We explore this interpretation further in \autoref{sec:trace-concentration}.
 
-Let $X_1,\dots,X_n \in \mathbb{R}^p$ be i.i.d.\ observations from some $p$-dimensional distribution with mean $0$ and covariance matrix $\Sigma$.
-Define the sample covariance matrix $\widehat S_n \ceq \frac 1n \sum_i X_i X_i \trans$.
-\todo{do we want $n-1$ in denom?}
+The Frobenius norm $\norm{\Sigma}_F$ also can be understood in terms of principal components.
+The Frobenius norm can be written as $\tr(\Sigma \trans \Sigma)^{\sfrac12}$, which---because the trace is invariant to changes of bases---is equal to $\tr(D^2)^{\sfrac12}$ where $D$ is the diagonalization of $\Sigma$.
+Because the diagonalization of $\Sigma$ yields the variances of the principal components of $X$, the Frobenius norm is the $\mathcal L_2$ norm of the pricipal component variances.
 
-Let $\lambda_1 \geq \lambda_2 \geq \cdots \geq \lambda_p \geq 0$ be the eigenvalues of $\Sigma$ and $\hat\lambda_1 \ge \hat\lambda_2 \ge \cdots \ge \hat\lambda_p$ the eigenvalues of $\widehat S_n$.
+In some sense, the Frobenius norm can be interpreted as a smoother version of the spectral norm that puts the most weight on the largest eigenvalue, but still puts some weight on the lower eigenvalues.
+There is some merit to this interpretation: the nuclear, Frobenius, and spectral norms can be understood as $\mathcal L_1$, $\mathcal L_2$, and $\mathcal L_\infty$ norms respectively of $\Sigma$'s eigenvalue vector.
+\autoref{fig:gss-example} provides an illustration of each of these norms applied to two issues from the General Social Survey.
+\autoref{fig:norm-comparison} summarizes how each of these norms are related to the eigenvalues of the covariance matrix.
 
-Define $r = \rho(\Sigma)$ to be the spectral radius of $\Sigma$ and $\hat r_n = \rho(\widehat S_n)$ the spectral radius of the sample covariance matrix.
-
-There are several ways to think about this
-\begin{itemize}
-	\item the maximum eigenvalue of the covariance matrix,
-	\item the maximum eigenvalue of the covariance matrix,
-	\item the proportion of variance explained by the first principal component,
-	\item oblong-ness of the data elipsoid
-\end{itemize}
-
-Advantages of this over other approaches
+Our main results are presented using the spectral norm, but our qualatative findings hold almost identically for other norm choices.
+There are many advantages to this covariance-norm approach:
 \todo{citations}
 \begin{itemize}
 	\item it's model-free (e.g. doesn't require ideal point model, makes no distributional requirements of the data)
@@ -77,32 +80,80 @@ Disadvantages
 	\item different sets of questions are incomparable
 \end{itemize}
 
-\subsection{Relationship to Polarization in a Single Dimension}
 
-There is a two-way relationship between
+\begin{figure}
+	\centering
+	\label{fig:gss-example}
+	\includegraphics{./figures/examples/motivation/example.pdf}
+	\caption{
+		This figures plots 100 yearly responses from the General Social Survey on two questions regarding the responsibility of government to help those who are sick ($x$-axis) or who are poor ($y$-axis).
+		Superimposed is the yearly covariance ellipse $\set{ \mathbf x \trans \Sigma \mathbf x : \norm{\mathbf x} = 1 }$.
+		The position of each point has been slightly jittered for plotting.
+		%
+		From 2000 to 2012, the distribution of responses stretches causing an increase in all three of our measures of polarization.
+		From 2012 to 2024, the entire distribution shifts upwards and to the right, causing an increase in the number of extreme responses.
+		But the spread remains constant and our polarization measures do not budge.
+	}
+\end{figure}
 
-The first proposition follows immediately from definition (one-by-one matrices are trivially diagonalized). The second
 
-\begin{proposition}
-\end{proposition}
+\begin{figure}
+	\centering
+	\label{fig:norm-comparison}
+	\begin{minipage}{.5\textwidth}
+		\includegraphics[width=\textwidth]
+		{./figures/examples/motivation/norm_illustration.pdf}%
+	\end{minipage}%
+	\hspace{.1\textwidth}
+	\begin{tabular}{r l | c | c}
+		\multicolumn{2}{c|}{Norm} & Expression       & $p$                           \\
+		\hline
+		Spectral                  & $\norm \Sigma_2$ & $\max(a, b)$       & $\infty$ \\
+		Nuclear                   & $\norm \Sigma_*$ & $a + b$            & $1$      \\
+		Frobenius                 & $\norm \Sigma_F$ & $\sqrt{a^2 + b^2}$ & $2$      \\
+	\end{tabular}
+	\caption{
+		The left-hand panel shows the ellipse $\set{ \mathbf x \trans \Sigma \mathbf x : \norm{\mathbf x} = 1 }$ induced by the matrix $\Sigma = \operatorname{diag}(2, 1)$.
+		The right-hand panel shows how our three matrix norms can be expressed as $p$-norms of the the matrix's eigenvalue vector, $(a, \, b) \trans$.
+		The spectral norm measures the maximum radius of the data elipsoid, the nulear norm measures the sum of all radii, and the Frobenius norm provides a smooth in-between.
+	}
+\end{figure}
 
+\subsection{Setup and Definition}
+
+\inlinetodo{Figure out how this fits into the flow of the rest of the paper.}
+
+Let $X_1,\dots,X_n \in \mathbb{R}^p$ be i.i.d.\ observations from some $p$-dimensional distribution with mean $0$ and covariance matrix $\Sigma$.
+Define the sample covariance matrix $\widehat S_n \ceq \frac 1n \sum_i X_i X_i \trans$.
+\todo{do we want $n-1$ in denom?}
+
+Let $\lambda_1 \geq \lambda_2 \geq \cdots \geq \lambda_p \geq 0$ be the eigenvalues of $\Sigma$ and $\hat\lambda_1 \ge \hat\lambda_2 \ge \cdots \ge \hat\lambda_p$ the eigenvalues of $\widehat S_n$.
+
+Define $r = \rho(\Sigma)$ to be the spectral radius of $\Sigma$ and $\hat r_n = \rho(\widehat S_n)$ the spectral radius of the sample covariance matrix.
+
+\subsection{Relationship to Polarization in a Latent Policy Position Model}
+
+Our setup is intentionally model-free, however, it does play nicely with a one-dimensional latent model.
+In particular, if
 
 \begin{proposition}
 	\label{thm:one-dim-implies-multiple-dim}
-	Let $x \sim \mathcal F(a)$ be a person's latent one-dimensional position modeled as random variable with finite variance $a \in \R$.
-	Let $\beta \in \R^d$ be the sensitivity of each of issue to this latent position such that her revealed positions with respect to individual policies are
+	Let $x \sim \mathcal F(a)$ be a person's latent one-dimensional political position modeled as random variable with finite variance $a \in \R$.
+	Let $\beta \in \R^d$ be the sensitivity of each of issue to this latent position such that her revealed positions with respect to individual policies $y$ are
 	\begin{equation}
 		y = \beta x + \epsilon;
 		\hspace{1in}
 		\Var(\epsilon) = \Gamma \in \R^{d \times d}.
 	\end{equation}
-	Let $\Sigma = \Var(y)$ and $r = \rho(\Sigma)$.
-	Then, $r$ is non-decreasing with respect to $a$.
+	Then $r = \norm {\Var(y)} _2$, is non-decreasing with respect to $a$.
 \end{proposition}
 
-Note that this proposition is quite flexible: we make no assumptions about the latent distribution other than it has a finite second moment. The error term is also allowed to take any form---in particular it can have complex non-diagonal covariance structure.
+Note that this proposition is quite flexible: we make no assumptions about the latent distribution other than it has a finite second moment, and the error term is also allowed to take any form---in particular it can have complex non-diagonal covariance structure.
 
-We first establish a few lemmas that greatly simiplify the proof. The first is regarding the spectral radius of a positive rank-one update to a positive semidefinite matrix, which we prove as conesequence of Weyl's inequalities \cite{weyl-1912-inequalities}. This result is very similar in flavor those of \todo{section number?} \textcite{golub-1973-eigenvalues}. We then leverage this to prove our proposition and close with a discussion of two suffcient conditions under which the phrase "non-decreasing" on the last line of \autoref{thm:one-dim-implies-multiple-dim} becomes "strictly increasing".
+We first establish a few lemmas that greatly simiplify the proof.
+The first is regarding the spectral radius of a positive rank-one update to a positive semidefinite matrix, which we prove as conesequence of Weyl's inequalities \cite{weyl-1912-inequalities}.
+This result is very similar in flavor those of \textcite{golub-1973-eigenvalues}.
+We then leverage this to prove our proposition and close with a discussion of two suffcient conditions under which the phrase "non-decreasing" on the last line of \autoref{thm:one-dim-implies-multiple-dim} becomes "strictly increasing".
 
 \begin{lemma}
 	\label{lem:rank-one-update}
@@ -113,7 +164,6 @@ We first establish a few lemmas that greatly simiplify the proof. The first is r
 \end{lemma}
 
 \begin{proof}
-
 	See \textcite[\S 5]{golub-1973-eigenvalues}.
 	% \todo{do we want to spell out the proof from Weyl's inequalities?
 	% https://nhigham.com/2021/03/09/eigenvalue-inequalities-for-hermitian-matrices/
@@ -149,7 +199,6 @@ Proof of the original result is now quite simple:
 \end{proof}
 
 Strict increase if $\beta$ nontrivially projects onto the first eigenspace of $\Gamma$. This happens on all but a measure zero subset of possible $(\beta, \Gamma)$ pairs.
-\todo{confim this}
 
 \begin{proposition}
 	If $a = \Var(x) > \rho(\Gamma) = r$, then $r$ is \emph{strictly increasing} with respect to $a$.
@@ -161,13 +210,14 @@ Strict increase if $\beta$ nontrivially projects onto the first eigenspace of $\
 
 \subsection{Estimating the Spectral Radius}
 
-Can leverage a lot of PCA theory going back to \textcite{anderson-1963-pca-asymptotics}. For an overview, see \textcite{jolliffe-2002-pca} or \textcite{zagidullina-2021-random-matrix-theory}.
+We now show that the sample analogue
 
-\subsubsection{Asymptotics}
-
+To do so, we leverage the fact that our matrix norm can be expressed in terms of the covariance eigenvalues to lean heavily on PCA theory going back to \textcite{anderson-1963-pca-asymptotics}.
+For an overview, see \textcite{jolliffe-2002-pca} or \textcite{zagidullina-2021-random-matrix-theory}.
 See \textcite{anderson-2003-multivariate} for more.
 
 \begin{proposition}[Consistency of sample eigenvalues]
+	\label{prop:sample-eigenvalue-consistency}
 	The sample eigenvalues $\hat \lambda_i$ are consistent estimates of the population eigenvalues $\lambda_i$.
 \end{proposition}
 
@@ -176,6 +226,7 @@ See \textcite{anderson-2003-multivariate} for more.
 \end{proof}
 
 \begin{proposition}[Asymptotic normality of sample eigenvalues]
+	\label{prop:sample-eigenvalue-normality}
 	Let $X_1,\dots,X_n \in \mathbb{R}^p$ be i.i.d.\ with mean $0$ and covariance $\Sigma$.
 	If $\Sigma$ has eigenvalues $\lambda_1 \geq \lambda_2 \geq \cdots \geq \lambda_p \geq 0$ with corresponding sample eigenvalues $\hat\lambda_1 \ge \hat\lambda_2 \ge \cdots \ge \hat\lambda_p$, then
 	\begin{equation}
@@ -188,13 +239,20 @@ See \textcite{anderson-2003-multivariate} for more.
 	$\sigma_i^2$ depends (somewhat complexly) on the fourth cumulants of $X_i$.
 \end{proposition}
 
-The normal result is due to \textcite{anderson-1963-pca-asymptotics}. The non-normal case is due to \textcite{waternaux-1976-nonnormal-eigenvalues} and expanded upon by \textcite{eaton-1991-eigenvalues}. The non-normal case will be of most use to us because most survey data is decidedly not normal (e.g. binary response or multiple choice). \note{We'll probably have to bootstrap, but can take advantage of normality to produce standard errors instead of using the boostrap quantiles.}
+The normal result is due to \textcite{anderson-1963-pca-asymptotics}.
+The non-normal case is due to \textcite{waternaux-1976-nonnormal-eigenvalues} and expanded upon by \textcite{eaton-1991-eigenvalues}.
+The non-normal case will be of most use to us because most survey data is decidedly not normal (e.g. binary response or multiple choice).
 
-From these facts, it follows trivially that the largest sample eigenvalue $\hat \lambda_1$ is a consistent and asymptotically-normal estimator of the spectral radius.
+\begin{proposition}
+	The spectral radius of the sample covariance matrix is a consistent and asymptotically-normal estimator of the population spectral radius.
+\end{proposition}
 
-\subsubsection{Finite-Sample Overestimation}
+\begin{proof}
+	Trivially from \autoref{prop:sample-eigenvalue-consistency} and \autoref{prop:sample-eigenvalue-normality}.
+\end{proof}
 
-Finite sample estimates for $\hat \lambda_1$ will overestimate
 
-\todo{shrinkage?}
+\inlinetodo{bootstrap standard errors?}
+
+\inlinetodo{finite-sample overestimation?}
 
