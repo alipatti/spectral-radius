@@ -2,30 +2,96 @@
 
 \subsection{Data}
 
-See \autoref{sec:gss-questions} for the questions.
+We use the General Social Survey from NORC at the University of Chicago \cite{gss}.
 
 \subsection{Methods}
 
+Categories are produced manually.
 
-\subsubsection{Covariance Estimation}
+See \autoref{sec:gss-questions} for the questions.
 
-\subsubsection{Standard Errors}
+We estimate 
+
+
+\inlinetodo{Produce standard errors for main trends by bootstrapping}
 
 \subsection{Results}
 
 \begin{landscape}
 	\begin{figure}
 		\centering
-		% \input{figure.pgf}
-		\caption{example figure}
+		\input{./figures/gss/pooled/pooled.pgf}
+		\caption{Polarization over time by category.}
 	\end{figure}
 \end{landscape}
 
+\begin{landscape}
+	\begin{figure}
+		\centering
+		\input{./figures/gss/decompositions/trace_concentration.pgf}
+		\caption{Decomposition of changes into spectral concentration and total variance.}
+	\end{figure}
+\end{landscape}
 
-\subsection{Decomposition}
-\label{sec:first-pc-decompositions}
+\begin{landscape}
+	\begin{figure}
+		\centering
+		\input{./figures/gss/by_group/political_party.pgf}
+		\caption{Polarization by political party.}
+	\end{figure}
+\end{landscape}
 
-\subsection{Decompositions by Group}
-\label{sec:group-decompositions}
+\begin{landscape}
+	\begin{figure}
+		\centering
+		\input{./figures/gss/decompositions/political_party.pgf}
+		\caption{Decomposition of changes into within v. between political party.}
+	\end{figure}
+\end{landscape}
+
+\subsection{Overall Trends}
+\label{sec:overall-trends}
+
+\begin{itemize}
+	\item abortion highly polarized, hasn't changed much
+	\item race polarization decreasing until around 2012, then enormous spike (dropping a bit post-covid)
+	\item sex/BC, welfare, police increasing at steady rate
+	\item spending polarization peaks in the 90s, 2008, covid
+\end{itemize}
+
+\subsection{Dimensional Collapse or Increase in Total Variance?}
+\label{sec:trace-concentration-decomp}
+
+\inlinetodo{initial decompositions (add in facet strip?)}
+
+\begin{itemize}
+	\item abortion has odd u shape
+	\item police entirely driven by total variance (concentration has decreased)
+	\item racial polarization entirely driven by dimensional collapse (total variance decreased)
+	\item others (welfare, sex, speech, etc.) are a mix
+\end{itemize}
+
+\subsection{Within or Between Parties?}
+\label{sec:party-decomp}
+
+by party:
+\begin{itemize}
+	\item democrats are polarized on police, race, affirmative action and unified on welfare and spending
+	\item republicans are more polarized on spending and sex, unified on police, race, affirmative action
+	\item republicans drive spending polarization bumps in 1990s
+	\item democrat polarization drops post covid for race, abortion, and sex/bc
+	\item polarization on police shoots up for republicans post-covid
+\end{itemize}
+
+\inlinetodo{initial decompositions (add in facet strip?)}
+
+change decomp:
+\begin{itemize}
+	\item abortion shows party convergence post-covid (driven by democrats)
+	\item speech, police changes entirely driven by within
+	\item race, welfare changes entirely driven by between
+\end{itemize}
+
+Breakdowns by other groups are presented in the appendix (race, region, education, gender).
 
 Simply plug-in our covariance matrix estimators into \autoref{eq:norm-sigma-decomposition-final} and calculate $s$ as the residual term.

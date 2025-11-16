@@ -12,11 +12,24 @@ DEMOGRAPHIC_VARIABLES: dict[str, pl.Expr] = dict(
         return_dtype=pl.Categorical,
         default=None,
     ),
-    #
+    # https://gssdataexplorer.norc.org/variables/82/vshow
     race=pl.col("race").replace_strict(
         {1: "White", 2: "Black", 3: "Other"},
         return_dtype=pl.Categorical,
         default=None,
+    ),
+    # https://gssdataexplorer.norc.org/variables/287/vshow
+    religion=pl.col("relig").replace_strict(
+        {
+            1: "Protestant",
+            2: "Catholic",
+            3: "Jewish",
+            4: "None",
+            5: "Other",
+            11: "Protestant",
+        },
+        return_dtype=pl.Categorical,
+        default=pl.lit("Other"),
     ),
     # https://gssdataexplorer.norc.org/variables/53/vshow
     # age bin cuts taken from Pew:
@@ -77,13 +90,13 @@ DEMOGRAPHIC_VARIABLES: dict[str, pl.Expr] = dict(
         | pl.col("parborn").is_in([1, 2, 4, 6, 8])
     ),
     # https://gssdataexplorer.norc.org/variables/119/vshow
-    region=pl.col("region").replace_strict(
+    geographic_region=pl.col("region").replace_strict(
         {1: "Northeast", 2: "Midwest", 3: "South", 4: "West"},
         default=None,
         return_dtype=pl.Categorical,
     ),
     # https://gssdataexplorer.norc.org/variables/120/vshow
-    place_type=(
+    type_of_neighborhood=(
         pl.when(pl.col("xnorcsiz").is_between(1, 2))
         .then(pl.lit("Urban"))
         .when(pl.col("xnorcsiz").is_between(3, 6))
