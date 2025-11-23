@@ -1,6 +1,70 @@
 \section{Introduction}
+\label{sec:intro}
 
-\inlinetodo{situate this in other literature}
+There is a strong sentiment among the public and the popular media that polarization is increasing \parencite{pew-2014-political-polarization, kaysen-singer-2024-movers-polarization}.
+Indeed, a recent New York Times/Sienna College poll revealed polarization as the second-most import issue to American voters, trailing only voters' economic concerns \parencite{nytimes-siena-2025-registered-voter-crosstabs}.
 
-% https://www.nytimes.com/2025/08/29/opinion/american-politics-center.html
+% \inlinetodo{examples}.
+
+But is the American public ideologically polarizing---or only growing more partisan in its feelings toward the opposing side?
+A large literature documents sustained growth in what has been dubbed \emph{affective} polarization (rising interparty dislike and social distance) \parencite{iyengar-lelkes-2019-affective-polarization, boxell-gentzkow-2023-cross-country-affective, boxell-gentzkow-2017-internet-polarization, iyengar-sood-lelkes-2012-affect, lelkes-sood-iyengar-2017-hostile-audience}.
+A related line of work shows that \emph{ideological} polarization---divergence in opinion and policy positions---has increased markedly among congresspeople and other political elites over a similar time period \parencite{mccarty-poole-rosenthal-2006-polarized-america, elsas-fiselier-2023-elite-polarization-dimensions, knoll-2024-elite-polarization-boon-bane}.
+
+However, trends in idological polarization among the mass public are less well understood.
+Are everyday Americans becoming more separated in their core idological and political beliefs?
+Some work argues that ideological polarization has occured only among elites and that the electorate has remained similarly (un)divided \parencite{fiorina-abrams-2011-culture-war, lelkes-2016-mass-elite-polarization}.
+Others claim meaningful growth in ideological divisions.
+For example, \textcite{ojer-etal-2025-multidimensional-polarization} embed survey-respondents opinions in a two-dimensional latent policy space and take the increasing distance between Democrats and Republicans positions as evidence of increasing party polarization.
+\textcite{abramowitz-saunders-2008-polarization-myth} cite the increasing presence of consistently liberal or consistently conservative opinions across multiple issues.
+
+One reason for this disagreement is the lack of a consistent definition for what constitutes ideological polarization.
+This paper contributes such a definition % and uses it to demonstrate a general increase in polarization over the last several decades.
+that does not require belief in an latent issue space nor the imposition of a political party structure.
+%
+I start with the observation that the mere prevalence of extreme opinions does not, by itself, constitute polarization.
+What matters is opinion dispersion and---once multiple issues are considered---the structure of that dispersion across issues.
+Intuitively, polarization is maximized when views are concentrated at opposing extremes with little mass in between and when opinions are highly correlated across many issues.
+Formally, I summarize the joint distribution of policy opinions using the covariance matrix of survey responses and use their matrix norms as scalar indices of polarization.
+Our preferred index is the \emph{spectral norm} (the largest eigenvalue\footnote{
+	Because we are dealing with positive semidefinite covariance marices, the spectral norm and spectral radius coincide. This is not the case in general.
+}), equal to the variance of the first principal component.\footnote{
+	The same framework accommodates alternative matrix norms (trace/nuclear, Frobenius), interpretable as
+	Our main results are robust to norm choice (\autoref{appendix alt measures of polarization figure}).
+}
+Using this measure, we find that polarization has increased in a wide variety of policy arenas over the past three decades.
+
+One benefit of my index is that it admits two transparent algebraic representations that allow us to decompose the observed increases and begin probing mechanisms behind these trends.
+First, we decompose our polarization measure into a term capturing the degree to which opinions project onto a single ``us–vs–them'' axis and a term capturing the extent to which people disagree in general.
+We find that---with the notable exception of race-related issues---increases in polarization have been driven almost entirely by increases in general disagreement and \emph{not} by dimensional collapse.
+
+Second, we examine the degree to which increases in polarization are explained by divergence in opinions among political parties and other demographic groups.
+For example, has polarization increased simply because of a divergence in the typical opinions of Democrats and Republicans?
+We find a nuanced answer to this question.
+Polarization within political party is as as high and in many cases even higher than overall polarization.
+For example, Republicans are consistenly more interally polarized on spending issues than the general public.
+Democrats are internally polarized on police and race-related issues.
+Furthermore, we find that the driver of increasing polarization varies greatly depending on the topic at hand.
+For example, increasing polarization on race and welfare issues has been almost entirely driven by between-party changes whereas increasing polarization about law-enforcement has been driven almost entirely by changes within-party.
+Additionally, we find that demographic characteristics (e.g., gender, race, geography, education, religion) in general explain a small proportion of observed increases.
+Together, these results question existing literature that suggests increasing polarization is driven by opinion collapse within demographic niches \parencite{gennaioli-tabellini-2021-identity-beliefs, TODO-another-citation}.
+
+Concretely, this paper makes three contributions:
+\begin{enumerate}
+	\item
+	      First it motivates and develops a covariance-based measure of ideological polarization that takes into account both polarization on individual issues and the joint distribution of opinions across many issues.
+	      This method delivers a single scalar measure that reduces to variance in the case of a single issue.\note{too much ``issue''}
+	\item
+	      Second, it develops two decompositions of changes in polarization.
+	      The first partitions changes into a term capturing the degree to which opinions project onto a single ``us–vs–them'' axis and a term capturing the strength of disagreement in general.
+	      The second decomposes changes into within- and between-group components.
+	\item
+	      Third, it offers a unified portrait of mass ideological polarization over the past three decades across several topic domains by applying the methods from the previous two bullets to the University of Chicago NORC's General Social Survey \parencite{gss}.
+				We find that (1) polarization has increased, (2) these increases have been mostly driven by increases in general disagreement and \emph{not} by dimensional collapse, and (3) these increases are not explained by diverging party positions or diverging positions of demographic groups like gender, race, geography, or religion.
+\end{enumerate}
+
+The remainder of the paper proceeds as follows:
+\autoref{TODO} introduces our polarization measure and presents a statistical framework;
+\autoref{TODO} mathematically derives and intuitively explains our two decompositions;
+\autoref{TODO} applies these techniques to the GSS and reports results;
+\autoref{TODO} concludes and outlines potential for future work.
 

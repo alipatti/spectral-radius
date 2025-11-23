@@ -2,18 +2,17 @@
 
 % TODO: use https://www.refine.ink on late-stage draft
 
-\usepackage{biblatex}
-\addbibresource{paper/refs.bib}
-\addbibresource{paper/refs.bib}
-\addbibresource{paper/refs.bib}
+\usepackage[style=authoryear, maxnames=20, url=false]{biblatex}
+\hypersetup{hidelinks}
+\addbibresource{./paper/refs.bib}
 
 \geometry{margin=1in}
 
 \usepackage{pdflscape}
 
-\title{Polarization}
+\title{Measuring Ideological Polarization}
 
-\author{Alistair Pattison}
+\author{Alistair Pattison\footnote{Harvard University and Opportunity Insights (apattison@g.harvard.edu). This is a frequently-updated working paper; please see \url{https://github.com/alipatti/spectral-radius} for the most-recent version.}}
 \date{Fall 2025}
 
 \begin{document}
@@ -21,12 +20,8 @@
 \maketitle
 
 \begin{abstract}
-	\inlinetodo{write this}
+	\inlinetodo{write abstract}
 \end{abstract}
-
-\inlinetodo{standardize notation for dimension}
-
-\inlinetodo{standardize theorem environments}
 
 % main content
 \input{paper/intro.tex}
