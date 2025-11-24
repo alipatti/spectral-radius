@@ -67,22 +67,6 @@ We elect to use the spectral norm for the remainder of the paper due to its simp
 
 \begin{figure}
 	\centering
-	\caption{Responses to Two Related Survey Questions}
-	\label{fig:gss-example}
-	\includegraphics{./figures/examples/motivation/example.pdf}
-	\notes{
-		This figure plots 100 yearly responses from the General Social Survey on two questions regarding the responsibility of government to help those who are sick ($x$-axis) or who are poor ($y$-axis).
-		Superimposed is the yearly covariance ellipse $\set{ \mathbf x \trans \Sigma \mathbf x : \norm{\mathbf x} = 1 }$.
-		The position of each point has been slightly jittered for plotting.
-		%
-		From 2000 to 2012, the distribution of responses stretches causing an increase in all three of our measures of polarization.
-		From 2012 to 2024, the entire distribution shifts upwards and to the right, causing an increase in the number of extreme responses.
-		But the spread remains constant and our polarization measures do not budge.
-	}
-\end{figure}
-
-\begin{figure}
-	\centering
 	\caption{Comparison of Matrix Norms}
 	\label{fig:norm-comparison}
 	\begin{minipage}{.5\textwidth}
@@ -104,17 +88,35 @@ We elect to use the spectral norm for the remainder of the paper due to its simp
 	}
 \end{figure}
 
-\subsection{Statistical Formalization}
+\begin{figure}
+	\centering
+	\caption{Responses to Two Related Survey Questions}
+	\label{fig:gss-example}
+	\includegraphics{./figures/examples/motivation/example.pdf}
+	\notes{
+		This figure plots 100 yearly responses from the General Social Survey on two questions regarding the responsibility of government to help those who are sick ($x$-axis) or who are poor ($y$-axis).
+		Superimposed is the yearly covariance ellipse $\set{ \mathbf x \trans \Sigma \mathbf x : \norm{\mathbf x} = 1 }$.
+		The position of each point has been slightly jittered for plotting.
+		%
+		From 2000 to 2012, the distribution of responses stretches causing an increase in all three of our measures of polarization.
+		From 2012 to 2024, the entire distribution shifts upwards and to the right, causing an increase in the number of extreme responses.
+		But the spread remains constant and our polarization measures do not budge.
+	}
+\end{figure}
+
+\subsection{Statistical Formalization and Notation}
 \label{sec:formalization}
 
 We now we formalize our data setup and estimand, present an estimator, and prove some basic properties about it.
 %
-In particular, we assume that we observe $\mathbf x_1, \ldots, \mathbf x_p \sim \mathcal F$ with $\mathbf x_i = \paren{x_{i1}, \ldots, x_{ip}}$.
+In particular, we assume that we observe i.i.d. samples $\mathbf x_1, \ldots, \mathbf x_n \sim \mathcal F$ with $\mathbf x_i = \paren{x_{i1}, \ldots, x_{ip}}$, drawn from some underlying distribution of political opinions $\mathcal F$.
 Notably, we make no assumptions about the distribution $\mathcal F$ from which the responses ar drawn except that it has a finite covariance matrix $\Sigma = \Var(x_i)$.
-The estimand of interest is $\rho = \norm{\Sigma}_2$, the spectral radius of $\Sigma$.
+Let $\lambda_1, \ldots, \lambda_p$ be the eigenvalues of $\Sigma$ ordered from largest to smallest.
+Then, the estimand of interest is $\rho = \norm{\Sigma}_2 = \lambda_1$, the spectral radius of $\Sigma$.
 
 My estimator is quite straightforward:
-I define the sample covariance matrix $\widehat S_n \ceq \frac 1n \sum_i \mathbf x_i \mathbf x_i \trans$ and take the naive estimator $\hat \rho = \| \widehat S_n \|_2$.
+First, I define the sample covariance matrix $\widehat S_n \ceq \frac 1n \sum_i \mathbf x_i \mathbf x_i \trans$ and corresponding sample eigenvalues $\hat \lambda_1, \ldots, \hat \lambda_p$.
+Then, my estimator is simply $\hat \rho = \| \widehat S_n \|_2 = \hat \lambda_1$.
 This turns out to be okay (see \cref{sec:deferred-proofs} for proof):
 
 \begin{proposition}
@@ -134,7 +136,7 @@ The following proposition formalizes that notion:
 	\begin{equation}
 		x_{ij} = \beta_j y + e_i;
 		\hspace{1in}
-		\Var(\mathbf e) = \Gamma \in \R^{d \times d}.
+		\Var(\mathbf e) = \Gamma \in \R^{p \times p}.
 	\end{equation}
 	Define $\Sigma = \Var(\mathbf x_i)$ and $r = \norm{\Sigma}_2$.
 	Then,

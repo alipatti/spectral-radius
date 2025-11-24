@@ -1,86 +1,28 @@
 \section{Decompositions}
+\label{sec:decompositions}
 
 \subsection{First Principal Component}
 \label{sec:trace-concentration}
 
-The spectral norm admits a multiplicative decomposition into
+The fact that the spectral norm of the covariance matrix can be understood as the variance of the first principal component means that $\norm \Sigma _2$ admits a straightforward multiplicative decomposition as the total variance ($\tr \Sigma$) times the explanatory power of the first principal component ($\lambda_1 / \tr \Sigma$):
 \begin{equation}
 	\norm{\Sigma}_2
 	\ = \ \lambda_1
-	\ = \ \frac{\lambda_1}{\sum_i \lambda_i} \cdot \sum_i \lambda_i
-	\ = \ \frac{\lambda_1}{\tr(\Sigma)} \cdot \tr(\Sigma)
+	\ = \ \tr \Sigma \cdot \lambda_1 / \tr \Sigma.
 \end{equation}
+We call the first component the total variance and the second component the ``spectral concentration''.
 
-These two terms
-\begin{itemize}
-	\item The proportion of total variance explained by the first principal component of $X$.
-	\item The second term $\tr \Sigma$ is the total variance.\footnote{In our case, this also happens to be equal to the nuclear norm $\norm{\Sigma}_{*}$}
-\end{itemize}
-See \cref{fig:stretch-v-scale}.
-
-
-
-\subsection{Between vs. Within Groups}
-\label{sec:between-v-within}
-
-\inlinetodo{Introduce setup: $Z$ is multinomial}
-
-$g$ groups
+By itself, this decomposition is somewhat useful in telling us how much variation projects onto a single dimension, but it's real utility comes in unpacking the source of the difference between two distributions' polarization.
+For example, suppose that there are two distributions $\mathcal F_0$ and $\mathcal F_t$ with covariance matrices $\Sigma_0$ and $\Sigma_t$ respectively.
+Then, we can decompose the percentage difference in their polarizations as the change in total variance times the change in spectral concentration:
 \begin{equation}
-	Z \sim \operatorname{Multinomial}(p_1, \ldots, p_g)
+	\label{eq:percent-change-trace-concentration}
+	\frac{\norm{\Sigma_1}_2}{\norm{\Sigma_0}_2}
+	\ = \ \frac{\tr \Sigma_1}{\tr \Sigma_0} \cdot \frac{\lambda_{0,1} / \tr \Sigma_0}{\lambda_{t,1} / \tr \Sigma_t}
 \end{equation}
 
-
-\begin{equation}
-	X = \sum_i Z_i X_i
-\end{equation}
-
-The law of total covariance allows us to decompose the covariance of $X$ into a within and between group component
-\begin{equation}
-	\label{eq:within-between-decomposition-of-sigma}
-	\begin{aligned}
-		\Sigma
-		 & = \operatorname{Cov}(X)                                                              \\
-		 & = \E{\operatorname{Cov}(X \given Z)} + \operatorname{Cov}\left(\E{X \given Z}\right) \\
-		 & = \underbrace{\sum_i p_i \Sigma_i}_{\substack{\text{within-group}                    \\ \text{components}}} \ + \ \underbrace{\sum_i p_i \paren{\mu_i - \mu}\paren{\mu_i - \mu} \trans}_{\text{between-group component}}
-	\end{aligned}
-\end{equation}
-
-Unfortunately, the spectral norm is not linear, so this does not immediately yield a within- and between-group decomposition of $\norm \Sigma _2$. Fortunately, it is \emph{sub-linear},\footnote{Meaning $\norm{A + B}_2 \leq \norm A_2 + \norm B_2$, i.e., it satisfies the triangle inequality.}.
-
-If we let $\Sigma_w$ and $\Sigma_b$ denote the within- and between-group components of the decomposition in \cref{eq:within-between-decomposition-of-sigma}, the triangle inequality for norms lets us write $\norm{\sigma}_2$ as the sum of $\norm{\Sigma_w}_2$ and $\norm{\Sigma_b}_2$, less an additional slack term $s_b \geq 0$ that captures the tightness of the triangle inequality for this particular pair of matrices:
-\begin{equation}
-	\label{eq:norm-sigma-decomposition-1}
-	\norm{\Sigma}_2 = \norm{\Sigma_w}_2 + \norm{\Sigma_b}_2 - s_b.
-\end{equation}
-In general, the interpretation of $s_b$ varies depending on vector space and the norm being used,\footnote{For example, with the $\mathcal L_2$ norm on $\R^n$, the slack is directly related to the angle between the two vectors.} but in our spectral-norm setup, $s_b$ captures the degree to which the principal eigenvectors of $\Sigma_w$ and $\Sigma_b$ align, with $s_b$ vanishing precisely when the principal eigenvectors collide (or when one of the matrices is zero).
-In our setting, this is means that $s_b$ captures the difference in the direction of polarization between $\Sigma_w$ and $\Sigma_b$: Small $s_b$ means that $\Sigma_w$ is polarized along a similar axis to $\Sigma_b$. Large $s_b$ means that the directions of polarization are different.
-
-However, we are often concerned not just with the difference in the direction of polarization between $\Sigma_b$ and $\Sigma_w$, but the differences in the directions of polarization among the group-specific covariance matrices $\Sigma_i$ that together make up $\Sigma_w$.
-To get at this, we can further decompose $\norm{\Sigma_2}_2$ into the norms of its individual group-specific covariance matrices plus another slack term $s_b \geq 0$:
-\begin{equation}
-	\norm{\Sigma}_2 = \sum_i p_i \norm{\Sigma_i}_2 + s_w - \norm{\Sigma_b}_2 - s_b.
-\end{equation}
-Here, $s_w$ captures the degree to which each group is polarized on a different set of issues in the same way that $s_b$ in \cref{eq:norm-sigma-decomposition-1} above captured how the direction of polarization differed between $\Sigma_w$ and $\Sigma_b$.
-For simplicity of presentation, we typically combine both slack terms and the between-group polarization into a single "between-group" category:
-\begin{equation}
-	\label{eq:norm-sigma-decomposition-final}
-	\norm{\Sigma}_2
-	\ = \ \underbrace{\sum_i p_i \norm{\Sigma_i}_2}_{\rho_{\text{within}}} + \underbrace{\norm{\Sigma_b}_2 - s_w - s_b}_{\rho_{\text{between}}}.
-\end{equation}
-
-The payoff from all this math is that both term in \cref{eq:norm-sigma-decomposition-final} have an intuitive interpreation:
-\begin{itemize}
-	\item
-	      $\rho_w$ measures the extent to which each group is polarized amongst themselves and is simply the weighted average of the group-specific polarizations.
-	\item
-	      $\rho_b$ measures the extent to which there is polarization across groups. The norm of the between-group covariance matrix captures increased polarization coming from different groups holding different positions.
-	      The slack terms accounts for the fact that overall polarization is diminished if different groups are divided on different issues.
-	      Note that $\rho_b$ is \emph{not necessarily positive}—it can be (and often is the case) that the differing directions of polarization in individual groups ``cancel out'' the between group polarization.
-	      \Cref{fig:between-group-sign} visualizes how between-group differences can amplify, offset, or leave unchanged overall polarization depending on the axis along which each subgroup is polarized.
-\end{itemize}
-
-We present results from this decomposition in \cref{sec:group-decompositions}.
+\Cref{fig:stretch-v-scale} illustrates this idea, and in \cref{sec:trace-concentration-decomp} discusses results from applying this technqiue to survey data to decompose changes in the polarization of the American public over time.
+We find that most changes are due to changes in the total variance term.
 
 \begin{figure}
 	\centering
@@ -91,8 +33,9 @@ We present results from this decomposition in \cref{sec:group-decompositions}.
 	\includegraphics{./figures/examples/decomps/stretch_v_scale/scaled.pdf}%
 	\notes{
 		The spectral norm can be multiplicatively decomposed into the product of the spectral concentration (i.e., the proportion of variance explained by the first principal component) and the trace of the covariance matrix (i.e., the sum of the individual variances).
-		In this figure, the red distribution are identical between both panels, and the blue distributions share the same spectral radius.
-		In the left-hand panel, the larger spectral norm is entirely due to an increase of the relevance of the first principal component with the total variance of the red and blue distributions held constant.
+		In this figure, the blue distributions are the same in both panels and the green distributions share the same larger spectral radius.
+		However, the reasons for this increase are quite different.
+		In the left-hand panel, the larger norm is entirely due to an increase of the relevance of the first principal component with the total variance of the two distributions held constant.
 		In the right-hand panel, the difference is entirely due to the total variance with a fixed spectral concentration.
 	}
 \end{figure}
@@ -111,4 +54,74 @@ We present results from this decomposition in \cref{sec:group-decompositions}.
 		The rightmost panel shows a scenario where the within- and between-group polarizations align to yield $\rho_b > 0$.
 	}
 \end{figure}
+
+\subsection{Between vs. Within Groups}
+\label{sec:between-v-within}
+
+The following section explores how polarization can come from both disagreement \emph{within} a particular group (e.g. disagreement among Democrats about immigration) and disagrement \emph{between} groups (e.g. Democrats and Republicans hold, on average, quite different opinions about law enforcement).
+To start, we ammend our statistical setup to allow for such groupings.
+%
+In particular, let
+\begin{equation}
+	z_i \sim \operatorname{Multinomial}(p_1, \ldots, p_G)
+\end{equation}
+be an integer $z_i \in \set{1, \ldots, G}$ indicating the group to which individual $i$ belongs.
+We allow each group to draw their opinions from an entirely different distribution, so the revealed opinions of indivual $i$ on each of the $j$ issues is given by
+\begin{equation}
+	x_{ij} = \sum_g \mathbf 1 (z_i = g) \cdot x_{ijg}
+\end{equation}
+where $x_{ijg}$ is the potential opinion of individual $i$ on issue $j$ were they a member of group $g$.
+Then, the multidimensional analogue to he law of total variance \parencite{TODO} allows us to decompose the covariance matrix of $\mathbf x_i = (x_{i1}, \ldots, x_{ip})$ into a within- and between-group component:
+\begin{equation}
+	\begin{aligned}
+		\label{eq:within-between-decomposition-of-sigma}
+		\Sigma
+		 & = \Var(\mathbf x_i)                                                         \\
+		 & = \E{\Var(\mathbf x_i \given z_i)} + \Var\paren{\E{\mathbf x_i \given z_i}} \\
+		 & = \underbrace{\sum_g p_g \Sigma_g}_{\substack{\text{within-group}           \\ \text{components}}} \ + \ \underbrace{\sum_g p_g \paren{\mu_g - \mu}\paren{\mu_g - \mu} \trans}_{\text{between-group component}}
+	\end{aligned}
+\end{equation}
+where $\mu_g = \E{\mathbf x_{i} \given z_i = g}$ is the mean vector of group $g$ and $\Sigma_g = \Var(\mathbf x_i \given z_i = g)$ is the group's covariance matrix, and $\mu$ is the overall mean.
+%
+Unfortunately, the spectral norm is not linear, so this does not immediately yield a within- and between-group decomposition of $\norm \Sigma _2$.
+Fortunately, it is \emph{sub-linear}.\footnote{Meaning $\norm{A + B}_2 \leq \norm A_2 + \norm B_2$, i.e., it satisfies the triangle inequality.}.
+
+If we let $\Sigma_w$ and $\Sigma_b$ denote the within- and between-group components of the decomposition in \autoref{eq:within-between-decomposition-of-sigma}, the triangle inequality for norms lets us write $\norm{\Sigma}_2$ as the sum of $\norm{\Sigma_w}_2$ and $\norm{\Sigma_b}_2$, less an additional slack term $s_b \geq 0$ that captures the tightness of the triangle inequality for this particular pair of matrices:
+\begin{equation}
+	\label{eq:norm-sigma-decomposition-1}
+	\norm{\Sigma}_2 = \norm{\Sigma_w}_2 + \norm{\Sigma_b}_2 - s_b.
+\end{equation}
+In general, the interpretation of $s_b$ varies depending on vector space and the norm being used,\footnote{
+	For example, with the $\mathcal L_2$ norm on $\R^n$, the slack is related to the angle between the two vectors.
+} but in our spectral-norm setup, $s_b$ captures the degree to which the principal eigenvectors of $\Sigma_w$ and $\Sigma_b$ align, with $s_b$ vanishing precisely when the principal eigenvectors collide (or when one of the matrices is zero).
+In our setting, this is means that $s_b$ captures the difference in the direction of polarization between $\Sigma_w$ and $\Sigma_b$:
+Small $s_b$ means that groups disagree along a similar axis amongst themselves as the disagreement between groups.
+Large $s_b$ means that the directions of polarization are different.
+
+However, we are often concerned not just with the difference in the direction of polarization between $\Sigma_b$ and $\Sigma_w$, but the differences in the directions of polarization among the groups themselves.
+Do Democrats disagree in the same way on race issues as Republicans do?
+To get at this, we can further decompose $\norm{\Sigma_2}_2$ into the norms of its individual group-specific covariance matrices plus another slack term $s_b \geq 0$:
+\begin{equation}
+	\norm{\Sigma}_2 = \sum_i p_i \norm{\Sigma_i}_2 + s_w - \norm{\Sigma_b}_2 - s_b.
+\end{equation}
+Here, $s_w$ captures the degree to which each group is polarized on a different set of issues in the same way that $s_b$ in \autoref{eq:norm-sigma-decomposition-1} above captured how the direction of polarization differed between $\Sigma_w$ and $\Sigma_b$.
+For simplicity of presentation, we typically combine both slack terms and the between-group polarization into a single ``between-group'' category:
+\begin{equation}
+	\label{eq:norm-sigma-decomposition-final}
+	\norm{\Sigma}_2
+	\ = \ \underbrace{\sum_i p_i \norm{\Sigma_i}_2}_{\rho_{\text{within}}} + \underbrace{\norm{\Sigma_b}_2 - s_w - s_b}_{\rho_{\text{between}}}.
+\end{equation}
+
+The payoff from all this math is that both terms in \autoref{eq:norm-sigma-decomposition-final} have an intuitive interpreation:
+\begin{itemize}
+	\item
+	      $\rho_w$ measures the extent to which each group is polarized amongst themselves and is simply the weighted average of the group-specific polarizations.
+	\item
+	      $\rho_b$ measures the extent to which there is polarization across groups. The norm of the between-group covariance matrix captures increased polarization coming from different groups holding different positions.
+	      The slack terms accounts for the fact that overall polarization is diminished if different groups are divided on different issues.
+	      Note that $\rho_b$ is \emph{not necessarily positive}—it can be (and often is the case) that the differing directions of polarization in individual groups ``cancel out'' the between group polarization.
+	      \Cref{fig:between-group-sign} visualizes how between-group differences can amplify, offset, or leave unchanged overall polarization depending on the axis along which each subgroup is polarized.
+\end{itemize}
+
+We present results from applying this decomposition to the GSS in \cref{sec:party-decomp}.
 
