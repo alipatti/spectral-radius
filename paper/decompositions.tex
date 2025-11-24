@@ -3,7 +3,7 @@
 \subsection{First Principal Component}
 \label{sec:trace-concentration}
 
-The spectral norm admits a multiplicative decomposition into 
+The spectral norm admits a multiplicative decomposition into
 \begin{equation}
 	\norm{\Sigma}_2
 	\ = \ \lambda_1
@@ -11,27 +11,14 @@ The spectral norm admits a multiplicative decomposition into
 	\ = \ \frac{\lambda_1}{\tr(\Sigma)} \cdot \tr(\Sigma)
 \end{equation}
 
-These two terms 
+These two terms
 \begin{itemize}
 	\item The proportion of total variance explained by the first principal component of $X$.
 	\item The second term $\tr \Sigma$ is the total variance.\footnote{In our case, this also happens to be equal to the nuclear norm $\norm{\Sigma}_{*}$}
 \end{itemize}
-See \autoref{fig:stretch-v-scale}.
+See \cref{fig:stretch-v-scale}.
 
 
-\begin{figure}
-	\centering
-	\includegraphics{./figures/examples/decomps/stretch_v_scale/stretched.pdf}%
-	\hspace{.5in}
-	\includegraphics{./figures/examples/decomps/stretch_v_scale/scaled.pdf}%
-	\caption{
-		The spectral norm can be multiplicatively decomposed into the product of the spectral concentration (i.e., the proportion of variance explained by the first principal component) and the trace of the covariance matrix (i.e., the sum of the individual variances).
-		In this figure, the red distribution are identical between both panels, and the blue distributions share the same spectral radius.
-		In the left-hand panel, the larger spectral norm is entirely due to an increase of the relevance of the first principal component with the total variance of the red and blue distributions held constant.
-		In the right-hand panel, the difference is entirely due to the total variance with a fixed spectral concentration.
-	}
-	\label{fig:stretch-v-scale}
-\end{figure}
 
 \subsection{Between vs. Within Groups}
 \label{sec:between-v-within}
@@ -52,16 +39,16 @@ The law of total covariance allows us to decompose the covariance of $X$ into a 
 \begin{equation}
 	\label{eq:within-between-decomposition-of-sigma}
 	\begin{aligned}
-	\Sigma
-		& = \operatorname{Cov}(X) \\
-		& = \E{\operatorname{Cov}(X \given Z)} + \operatorname{Cov}\left(\E{X \given Z}\right) \\
-		& = \underbrace{\sum_i p_i \Sigma_i}_{\substack{\text{within-group} \\ \text{components}}} \ + \ \underbrace{\sum_i p_i \paren{\mu_i - \mu}\paren{\mu_i - \mu} \trans}_{\text{between-group component}}
+		\Sigma
+		 & = \operatorname{Cov}(X)                                                              \\
+		 & = \E{\operatorname{Cov}(X \given Z)} + \operatorname{Cov}\left(\E{X \given Z}\right) \\
+		 & = \underbrace{\sum_i p_i \Sigma_i}_{\substack{\text{within-group}                    \\ \text{components}}} \ + \ \underbrace{\sum_i p_i \paren{\mu_i - \mu}\paren{\mu_i - \mu} \trans}_{\text{between-group component}}
 	\end{aligned}
 \end{equation}
 
 Unfortunately, the spectral norm is not linear, so this does not immediately yield a within- and between-group decomposition of $\norm \Sigma _2$. Fortunately, it is \emph{sub-linear},\footnote{Meaning $\norm{A + B}_2 \leq \norm A_2 + \norm B_2$, i.e., it satisfies the triangle inequality.}.
 
-If we let $\Sigma_w$ and $\Sigma_b$ denote the within- and between-group components of the decomposition in \autoref{eq:within-between-decomposition-of-sigma}, the triangle inequality for norms lets us write $\norm{\sigma}_2$ as the sum of $\norm{\Sigma_w}_2$ and $\norm{\Sigma_b}_2$, less an additional slack term $s_b \geq 0$ that captures the tightness of the triangle inequality for this particular pair of matrices:
+If we let $\Sigma_w$ and $\Sigma_b$ denote the within- and between-group components of the decomposition in \cref{eq:within-between-decomposition-of-sigma}, the triangle inequality for norms lets us write $\norm{\sigma}_2$ as the sum of $\norm{\Sigma_w}_2$ and $\norm{\Sigma_b}_2$, less an additional slack term $s_b \geq 0$ that captures the tightness of the triangle inequality for this particular pair of matrices:
 \begin{equation}
 	\label{eq:norm-sigma-decomposition-1}
 	\norm{\Sigma}_2 = \norm{\Sigma_w}_2 + \norm{\Sigma_b}_2 - s_b.
@@ -74,7 +61,7 @@ To get at this, we can further decompose $\norm{\Sigma_2}_2$ into the norms of i
 \begin{equation}
 	\norm{\Sigma}_2 = \sum_i p_i \norm{\Sigma_i}_2 + s_w - \norm{\Sigma_b}_2 - s_b.
 \end{equation}
-Here, $s_w$ captures the degree to which each group is polarized on a different set of issues in the same way that $s_b$ in \autoref{eq:norm-sigma-decomposition-1} above captured how the direction of polarization differed between $\Sigma_w$ and $\Sigma_b$.
+Here, $s_w$ captures the degree to which each group is polarized on a different set of issues in the same way that $s_b$ in \cref{eq:norm-sigma-decomposition-1} above captured how the direction of polarization differed between $\Sigma_w$ and $\Sigma_b$.
 For simplicity of presentation, we typically combine both slack terms and the between-group polarization into a single "between-group" category:
 \begin{equation}
 	\label{eq:norm-sigma-decomposition-final}
@@ -82,28 +69,46 @@ For simplicity of presentation, we typically combine both slack terms and the be
 	\ = \ \underbrace{\sum_i p_i \norm{\Sigma_i}_2}_{\rho_{\text{within}}} + \underbrace{\norm{\Sigma_b}_2 - s_w - s_b}_{\rho_{\text{between}}}.
 \end{equation}
 
-The payoff from all this math is that both term in \autoref{eq:norm-sigma-decomposition-final} have an intuitive interpreation:
+The payoff from all this math is that both term in \cref{eq:norm-sigma-decomposition-final} have an intuitive interpreation:
 \begin{itemize}
 	\item
-		$\rho_w$ measures the extent to which each group is polarized amongst themselves and is simply the weighted average of the group-specific polarizations.
+	      $\rho_w$ measures the extent to which each group is polarized amongst themselves and is simply the weighted average of the group-specific polarizations.
 	\item
-		$\rho_b$ measures the extent to which there is polarization across groups. The norm of the between-group covariance matrix captures increased polarization coming from different groups holding different positions.
-		The slack terms accounts for the fact that overall polarization is diminished if different groups are divided on different issues.
-		Note that $\rho_b$ is \emph{not necessarily positive}—it can be (and often is the case) that the differing directions of polarization in individual groups ``cancel out'' the between group polarization.
-		\autoref{fig:between-group-sign} visualizes how between-group differences can amplify, offset, or leave unchanged overall polarization depending on the axis along which each subgroup is polarized.
+	      $\rho_b$ measures the extent to which there is polarization across groups. The norm of the between-group covariance matrix captures increased polarization coming from different groups holding different positions.
+	      The slack terms accounts for the fact that overall polarization is diminished if different groups are divided on different issues.
+	      Note that $\rho_b$ is \emph{not necessarily positive}—it can be (and often is the case) that the differing directions of polarization in individual groups ``cancel out'' the between group polarization.
+	      \Cref{fig:between-group-sign} visualizes how between-group differences can amplify, offset, or leave unchanged overall polarization depending on the axis along which each subgroup is polarized.
 \end{itemize}
 
+We present results from this decomposition in \cref{sec:group-decompositions}.
+
 \begin{figure}
-	\includegraphics{./figures/examples/decomps/by_group/negative.pdf}%
-	\includegraphics{./figures/examples/decomps/by_group/zero.pdf}%
-	\includegraphics{./figures/examples/decomps/by_group/positive.pdf}	
-	\caption{
-		The sign and magnitude of of the between-group polarization $\rho_b$ can vary greatly depending on the means and covariance structure of the groups.
-		In the left-hand panel, the individual subgroups (dashed) are distributed such that the within-group polarization is \emph{higher} than the pooled (black) polarization, i.e., $\rho_b < 0$.
-	  In the center panel, the between group polarization is orthogonal to the within-group polarization and $\rho_b = 0$.
-    The rightmost panel shows a scenario where the within- and between-group polarizations align to yield $\rho_b > 0$.
-	} 
-	\label{fig:between-group-sign}
+	\centering
+	\caption{\XX}
+	\label{fig:stretch-v-scale}
+	\includegraphics{./figures/examples/decomps/stretch_v_scale/stretched.pdf}%
+	\hspace{.5in}
+	\includegraphics{./figures/examples/decomps/stretch_v_scale/scaled.pdf}%
+	\notes{
+		The spectral norm can be multiplicatively decomposed into the product of the spectral concentration (i.e., the proportion of variance explained by the first principal component) and the trace of the covariance matrix (i.e., the sum of the individual variances).
+		In this figure, the red distribution are identical between both panels, and the blue distributions share the same spectral radius.
+		In the left-hand panel, the larger spectral norm is entirely due to an increase of the relevance of the first principal component with the total variance of the red and blue distributions held constant.
+		In the right-hand panel, the difference is entirely due to the total variance with a fixed spectral concentration.
+	}
 \end{figure}
 
-We present results from this decomposition in \autoref{sec:group-decompositions}.
+\begin{figure}
+	\centering
+	\caption{\XX}
+	\label{fig:between-group-sign}
+	\includegraphics{./figures/examples/decomps/by_group/negative.pdf}%
+	\includegraphics{./figures/examples/decomps/by_group/zero.pdf}%
+	\includegraphics{./figures/examples/decomps/by_group/positive.pdf}
+	\notes{
+		The sign and magnitude of of the between-group polarization $\rho_b$ can vary greatly depending on the means and covariance structure of the groups.
+		In the left-hand panel, the individual subgroups (dashed) are distributed such that the within-group polarization is \emph{higher} than the pooled (black) polarization, i.e., $\rho_b < 0$.
+		In the center panel, the between group polarization is orthogonal to the within-group polarization and $\rho_b = 0$.
+		The rightmost panel shows a scenario where the within- and between-group polarizations align to yield $\rho_b > 0$.
+	}
+\end{figure}
+
