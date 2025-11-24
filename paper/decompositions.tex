@@ -63,15 +63,17 @@ To start, we ammend our statistical setup to allow for such groupings.
 %
 In particular, let
 \begin{equation}
-	z_i \sim \operatorname{Multinomial}(p_1, \ldots, p_G)
+	z_i \sim \operatorname{Multinomial}(p_1, \ldots, p_G);
+	\hspace{1in}
+	p_1 + \cdots + p_G = 1
 \end{equation}
-be an integer $z_i \in \set{1, \ldots, G}$ indicating the group to which individual $i$ belongs.
+be an integer indicating the group to which individual $i$ belongs.
 We allow each group to draw their opinions from an entirely different distribution, so the revealed opinions of indivual $i$ on each of the $j$ issues is given by
 \begin{equation}
 	x_{ij} = \sum_g \mathbf 1 (z_i = g) \cdot x_{ijg}
 \end{equation}
 where $x_{ijg}$ is the potential opinion of individual $i$ on issue $j$ were they a member of group $g$.
-Then, the multidimensional analogue to he law of total variance \parencite{TODO} allows us to decompose the covariance matrix of $\mathbf x_i = (x_{i1}, \ldots, x_{ip})$ into a within- and between-group component:
+Then, the multidimensional analogue to he law of total variance \parencite[e.g.]{anderson-2003-multivariate} allows us to decompose the covariance matrix of $\mathbf x_i = (x_{i1}, \ldots, x_{ip})$ into a within- and between-group component:
 \begin{equation}
 	\begin{aligned}
 		\label{eq:within-between-decomposition-of-sigma}
@@ -81,7 +83,7 @@ Then, the multidimensional analogue to he law of total variance \parencite{TODO}
 		 & = \underbrace{\sum_g p_g \Sigma_g}_{\substack{\text{within-group}           \\ \text{components}}} \ + \ \underbrace{\sum_g p_g \paren{\mu_g - \mu}\paren{\mu_g - \mu} \trans}_{\text{between-group component}}
 	\end{aligned}
 \end{equation}
-where $\mu_g = \E{\mathbf x_{i} \given z_i = g}$ is the mean vector of group $g$ and $\Sigma_g = \Var(\mathbf x_i \given z_i = g)$ is the group's covariance matrix, and $\mu$ is the overall mean.
+where $\mu_g = \E{\mathbf x_{i} \given z_i = g}$ is the mean vector of group $g$, $\Sigma_g = \Var(\mathbf x_i \given z_i = g)$ is the group's covariance matrix, and $\mu = \E{\mathbf x_i}$ is the unconditional mean.
 %
 Unfortunately, the spectral norm is not linear, so this does not immediately yield a within- and between-group decomposition of $\norm \Sigma _2$.
 Fortunately, it is \emph{sub-linear}.\footnote{Meaning $\norm{A + B}_2 \leq \norm A_2 + \norm B_2$, i.e., it satisfies the triangle inequality.}.

@@ -293,7 +293,7 @@ def get_gss():
 
 def main():
     cuts = DEMOGRAPHIC_VARIABLES.keys()
-    cuts = ("political_party",)
+    # cuts = ("political_party",)
 
     all_figures = (
         {
