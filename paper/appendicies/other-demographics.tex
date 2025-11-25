@@ -1,0 +1,29 @@
+\section{Decompositions by Other Characteristics}
+\label{sec:other-decompositions}
+
+\foreach \name/\displayName in {
+		sex/Sex,
+		race/Race,
+		religion/Religion,
+		geographic_region/Geographic Region,
+		type_of_neighborhood/Type of Neighborhood,
+		political_ideology/Political Ideology,
+		workforce_status/Workforce Status,
+		self_or_parent_immigrant/Immigrant Status,
+		education/Education,
+		age_bucket/Age
+	}{
+		\begin{landscape}
+			\begin{figure}
+				\centering
+				\caption{Polarization Within \displayName}
+				\input{./figures/gss/by_group/\name.pgf}
+			\end{figure}
+			\begin{figure}
+				\centering
+				\caption{Polarization Trends Within vs. Between \displayName}
+				\input{./figures/gss/decompositions/\name.pgf}
+			\end{figure}
+		\end{landscape}
+	}
+
