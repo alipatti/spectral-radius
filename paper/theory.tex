@@ -125,8 +125,8 @@ This turns out to be okay (see \cref{sec:deferred-proofs} for proof):
 
 \subsection{Relationship to Spread in a Latent Ideology Model}
 
-My setup is intentionally model-free, however, it does play nicely with a one-dimensional latent model.
-In particular, the spectral radius (eventually) picks up increases in spread within the latent distribution.
+My setup is intentionally model-free, however, it does play nicely with a one-dimensional latent model (for example, a right/left political ideology).
+In particular, the spectral radius picks up increases in spread within the latent distribution.
 The following proposition formalizes that notion:
 
 \begin{proposition}
@@ -139,10 +139,11 @@ The following proposition formalizes that notion:
 		\Var(\mathbf e) = \Gamma \in \R^{p \times p}.
 	\end{equation}
 	Define $\Sigma = \Var(\mathbf x_i)$ and $r = \norm{\Sigma}_2$.
-	Then,
+	Then the following hold:
 	\begin{enumerate}
-		\item $r$ is non-decreasing with respect to $a$ and
-		\item if $\beta \neq 0$, there exists some $A > 0$ such that for $a > A$, $r$ is strictly increasing with respect to $a$.
+		\item $r$ is non-decreasing in $a$;
+		\item if $\beta$ nontrivially projects onto the principal eigenspace of $\Gamma$, then $r$ is strictly increasing in $a$;
+		\item if $a > \norm{\Gamma}_2$, then $r$ is strictly increasing in $a$.
 	\end{enumerate}
 \end{proposition}
 
