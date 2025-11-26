@@ -85,54 +85,54 @@ It appears that in the vast majority of cases, the answer is no---most trends st
 Two notable exceptions are that education and religion explain a large chunk of the increase in abortion polarization.
 See \cref{sec:other-decompositions} for analogues to \cref{fig:gss-within-party,fig:gss-within-v-between}, replacing political party with race, sex, religion, education, geography, age, and other demographics.
 
-\begin{landscape}
-	\begin{figure}
-		\centering
-		\caption{Polarization Over Time by Issue Category}
-		\label{fig:gss-time-series}
-		\input{./figures/gss/pooled/pooled.pgf}
-		\notes{\XX Bootstrap standard errors leveraging asymptotic normality are forthcoming in a future version of this working paper.}
-	\end{figure}
+% \begin{landscape}
+\begin{figure}
+	\centering
+	\caption{Polarization Over Time by Issue Category}
+	\label{fig:gss-time-series}
+	\input{./figures/gss/pooled/pooled.pgf}
+	\notes{\XX Bootstrap standard errors leveraging asymptotic normality are forthcoming in a future version of this working paper.}
+\end{figure}
 
-	\begin{figure}
-		\centering
-		\caption{Changes due to Spectral Concentration Versus Total Variance}
-		\label{fig:gss-spectral-concentration}
-		\input{./figures/gss/decompositions/trace_concentration.pgf}
-		\notes{
-			The gray line shows the true observed change in polarization.
-			The blue line shows the ``dimensional-collapse-only'' counterfactual holding total variance to its original value.
-			The green line shows the ``general-disagreement-only'' counterfactual by fixing spectral concentration at its original value.
-			The two counterfactuals multiply to produce the observed change.
-			We pool to five-year bins for additional power.
-			\inlinetodo{add initial decompositions to the facet strip}
-		}
-	\end{figure}
+\begin{figure}
+	\centering
+	\caption{Changes due to Spectral Concentration Versus Total Variance}
+	\label{fig:gss-spectral-concentration}
+	\input{./figures/gss/decompositions/trace_concentration.pgf}
+	\notes{
+		The gray line shows the true observed change in polarization.
+		The blue line shows the ``dimensional-collapse-only'' counterfactual holding total variance to its original value.
+		The green line shows the ``general-disagreement-only'' counterfactual by fixing spectral concentration at its original value.
+		The two counterfactuals multiply to produce the observed change.
+		We pool to five-year bins for additional power.
+		\inlinetodo{add initial decompositions to the facet strip}
+	}
+\end{figure}
 
-	\begin{figure}
-		\centering
-		\caption{Polarization Within Political Party}
-		\label{fig:gss-within-party}
-		\input{./figures/gss/by_group/political_party.pgf}
-		\notes{
-			They gray line shows overall polarization.
-			The colored lines show polarization within self-identified political party.
-			We pool to five-year bins for additional power.
-		}
-	\end{figure}
+\begin{figure}
+	\centering
+	\caption{Polarization Within Political Party}
+	\label{fig:gss-within-party}
+	\input{./figures/gss/by_group/political_party.pgf}
+	\notes{
+		They gray line shows overall polarization.
+		The colored lines show polarization within self-identified political party.
+		We pool to five-year bins for additional power.
+	}
+\end{figure}
 
-	\begin{figure}
-		\centering
-		\caption{Changes From Increases in Spectral Concentration Versus Total Variance}
-		\label{fig:gss-within-v-between}
-		\input{./figures/gss/decompositions/political_party.pgf}
-		\notes{
-			The gray line shows the true observed change in polarization.
-			The blue line shows the ``between-party-only'' counterfactual holding the within-group polarization fixed.
-			The green line shows the ``within-group-only'' counterfactual holding the between-group polarization fixed.
-			The two counterfactuals add to produce the observed change.
-			We pool to five-year bins for additional power.
-			\inlinetodo{add initial decompositions to the facet strip}
-		}
-	\end{figure}
-\end{landscape}
+\begin{figure}
+	\centering
+	\caption{Changes From Within- Versus Between-Group Polarization}
+	\label{fig:gss-within-v-between}
+	\input{./figures/gss/decompositions/political_party.pgf}
+	\notes{
+		The gray line shows the true observed change in polarization.
+		The blue line shows the ``between-party-only'' counterfactual holding the within-group polarization fixed.
+		The green line shows the ``within-group-only'' counterfactual holding the between-group polarization fixed.
+		The two counterfactuals add to produce the observed change.
+		We pool to five-year bins for additional power.
+		\inlinetodo{add initial decompositions to the facet strip}
+	}
+\end{figure}
+% \end{landscape}

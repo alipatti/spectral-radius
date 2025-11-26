@@ -17,6 +17,7 @@ CATEGORY_WRAP = pn.facet_wrap(
     "category",
     scales="free",
     labeller=pn.labeller(cols=lambda s: rf"\scshape {s}"),  # type: ignore
+    ncol=2,
 )
 
 COLOR_SCALE = pn.scale_color_manual(COLORS)

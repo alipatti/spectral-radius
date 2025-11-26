@@ -1,11 +1,13 @@
 from itertools import product
 from pathlib import Path
+import string
+
 
 import polars as pl
 import inflection
 import gabriel
 
-from spectral_radius.gss.data import get_all_gss_variables
+from spectral_radius.gss.data import get_all_gss_variables, load_gss_data
 
 OPINION_CATEGORIES = {
     "Free Speech": [
@@ -16,6 +18,9 @@ OPINION_CATEGORIES = {
         )
     ],
     "Government Spending": [
+        "advfront",
+    ]
+    + [
         f"nat{expense}"
         for expense in (
             "spac",
@@ -54,18 +59,25 @@ OPINION_CATEGORIES = {
         "fejobaff",
         "fehire",
     ],
-    "Race": [f"racdif{i}" for i in (1, 2, 3, 4)]
-    + [
+    "Race": [
         "wrkwayup",
+        "natrace",
+        *(f"{prefix}rac" for prefix in ("spk", "col", "lib")),
+        *(f"racdif{i}" for i in (1, 2, 3, 4)),
     ],
     "Welfare": [
         # "aidhouse", # not available enough
         "helpsick",
         "helppoor",
         "eqwlth",
+        "natfare",
     ],
-    "Police": [
-        f"pol{action}" for action in ("hitok", "abuse", "murdr", "escap", "attak")
+    "Police and the Judicial System": [
+        *(f"pol{action}" for action in ("hitok", "abuse", "murdr", "escap", "attak")),
+        "courts",
+        "cappun",
+        "natcrime",
+        "conjudge",
     ],
     "Sex and Birth Control": [
         # sex
@@ -83,28 +95,21 @@ OPINION_CATEGORIES = {
         f"ab{reason}"
         for reason in ("defect", "nomore", "hlth", "poor", "rape", "single", "any")
     ],
-    "Miscellaneous": [
-        # political affiliation
-        # "partyid",
-        # "polviews",
-        # guns
-        "gunlaw",
-        # religion
-        "prayer",
-        "postlife",
-        "god",
-        # marijuana
-        "grass",
-        # judicial/penal system
-        "courts",
-        "cappun",
-        # science
-        "advfront",
-        # immigration
-        "letin1a",
-        # american dream
-        "goodlife",
-    ],
+    # "Miscellaneous": [
+    #     # guns
+    #     "gunlaw",
+    #     # religion
+    #     "prayer",
+    #     "postlife",
+    #     "god",
+    #     # marijuana
+    #     "grass",
+    #     # science
+    #     # immigration
+    #     "letin1a",
+    #     # american dream
+    #     "goodlife",
+    # ],
 }
 
 
@@ -181,8 +186,27 @@ def escape_tex(s: str) -> str:
     return s.replace("&", r"\&").replace("\n", r"\\").replace(". . .", r"$\ldots$ ")
 
 
-def format_question(name, desc, text) -> str:
-    return rf"\textsc{{{name}}} \hfill \textit{{({escape_tex(inflection.humanize(desc))})}} \begin{{quote}} \footnotesize {escape_tex(text)} \end{{quote}}"
+def format_question(name, desc, text, responses) -> str:
+    return rf"""
+    \textsc{{{name}}} \hfill \textit{{({escape_tex(inflection.humanize(desc))})}}
+    \begin{{quote}}
+        \footnotesize
+        {escape_tex(text)} 
+
+        \textit{{Possible responses}}: {escape_tex(responses)}
+    \end{{quote}}
+    """
+
+
+def get_response_labels():
+    metadata = load_gss_data(use_cache=True)[1]
+
+    return {
+        name: ", ".join(
+            f"``{v}'' ({k})" for k, v in labels.items() if isinstance(k, int)
+        )
+        for name, labels in metadata.variable_value_labels.items()
+    }
 
 
 def make_questions_appendix(
@@ -194,13 +218,18 @@ def make_questions_appendix(
         "survey_question",
     )
 
+    responses = get_response_labels()
+
     df = (
         pl.DataFrame(
             {"cat": cat, "name": v}
             for cat, vs in OPINION_CATEGORIES.items()
             for v in vs
         )
-        .join(survey_questions, "name", validate="1:1")
+        .join(survey_questions, "name", validate="m:1")
+        .with_columns(
+            pl.col("name").replace_strict(responses, default=None).alias("responses")
+        )
         .sort("cat", "name")
     )
 

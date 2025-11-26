@@ -193,8 +193,8 @@ def trace_decomp_figure() -> pn.ggplot:
         .unpivot(index=["year", "category", "rho"])
         .with_columns(pl.col("variable").replace_strict(renames))
         .pipe(pn.ggplot, pn.aes("year"))
-        + pn.geom_line(pn.aes(y="value", color="variable"))
         + pn.geom_line(pn.aes(y="rho"), linetype="dashed", color="gray")
+        + pn.geom_line(pn.aes(y="value", color="variable"))
         + CATEGORY_WRAP
         + theme_ali()
         + COLOR_SCALE
@@ -219,8 +219,8 @@ def subgroup_polarization_figure(by: str) -> pn.ggplot:
             pn.ggplot,
             pn.aes("year", "rho"),
         )
+        + pn.geom_line(data=group_decomposition, linetype="dashed", color="gray")
         + pn.geom_line(pn.aes(color=by))
-        + pn.geom_line(data=group_decomposition, linetype="dashed")
         + CATEGORY_WRAP
         + COLOR_SCALE
         + theme_ali()
@@ -294,6 +294,7 @@ def get_gss():
 def main():
     cuts = DEMOGRAPHIC_VARIABLES.keys()
     # cuts = ("political_party",)
+    # cuts = ()
 
     all_figures = (
         {
@@ -305,7 +306,7 @@ def main():
     )
 
     for path_root, fig in all_figures.items():
-        savefig(fig, FIGURES / path_root)
+        savefig(fig, FIGURES / path_root, size=(8.5 - 2, 11 - 3.5))
 
 
 if __name__ == "__main__":
