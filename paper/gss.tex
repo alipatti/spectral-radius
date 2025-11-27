@@ -1,7 +1,7 @@
 \section{Application in the General Social Survey}
 \label{sec:gss}
 
-We now apply our techniques to the General Social Survey---a bi-annual poll of the American public on a broad variety of social, political, and ideological topics administered by NORC at the University of Chicago \parencite{gss}.
+I now apply these techniques to the General Social Survey---a bi-annual poll of the American public on a broad variety of social, political, and ideological topics administered by NORC at the University of Chicago \parencite{gss}.
 I restrict to questions that have been asked repeatedly over the past three decades and manually categorize questions into one of eight topics: abortion, affirmative action, free speech, government spending, police and justice, race, sex and birth control, and welfare.
 For each category, \cref{sec:gss-questions} enumerates the selected survey questions, their text, and the possible responses.
 
@@ -16,7 +16,7 @@ To deal with missingness (arising from certain people receiving only a subset of
 	However, to affect any of our trends, this bias would have to dynamically evolve over time.
 	This also does create the possibility of a non-PSD covariance estimate, but the probability of this vanishes as $n \to \infty$.
 }
-We use the provided \texttt{WTSSPS} survey weight.
+I use the provided \texttt{WTSSPS} survey weight.
 
 \subsection{Overall Trends}
 \label{sec:overall-trends}
@@ -30,7 +30,7 @@ In particular, there are large spikes during the mid 1990s,\footnote{
 	This spike is entirely due to polarization amongst Republicans; see \cref{fig:gss-within-party}.
 } the 2008 financial crisis, and the COVID-19 pandemic.
 
-We find steady increases in polarization on all topics except free speech and race.
+I find steady increases in polarization on all topics except free speech and race.
 %
 Free speech issues exhibit steady decline in polarization throughout the 1990s and 2000s before spiking in the wake of the 2008 financial crisis.
 Polarization then remains high throughout the 2010s before plummeting again during the COVID-19 pandemic.
@@ -57,21 +57,21 @@ The most obvious exceptions to this trend are (1) race issues, where increases i
 \Cref{sec:between-v-within} developed a way to decompose polarization into a component stemming from within-group disagreement and a component stemming from between-group disagreement.
 This subsection applies that technique to the GSS.
 
-As a first step, we can investigate levels and trends of polarization \emph{within} political party.
+As a first step, I investigate levels and trends of polarization \emph{within} political party.
 \cref{fig:gss-within-party} shows these results.
-We counterintuitively find that within-party polarization is typically comparable to---and in some cases higher than---polarization in the general population.
+I counterintuitively find that within-party polarization is typically comparable to---and in some cases higher than---polarization in the general population.
 Democrats are generally more polarized on police, race and affirmative action and are united on welfare and spending issues.
 Republicans are polarized on spending and sex and united on policing, race, and affirmative action.
 %
 Interestingly, this exercise also reveals how both the bump in spending polarization during the 1990s and the spike in police-related polarization post George Floyd are driven by disagreement \emph{within} the Republican party.%
 \footnote{
 	Party is obviously endogenous to one's political and ideological beliefs, so results from this section should all be taken with a grain of salt.
-	We also present results by self-reported ideology (liberal v. conservative) in \cref{sec:other-decompositions}.
+	I also present results by self-reported ideology (liberal v. conservative) in \cref{sec:other-decompositions}.
 }
 
-We then leverage the framework of \cref{sec:between-v-within} to decompose changes in polarization into those attributable to within- and between-party trends.
+I then leverage the framework of \cref{sec:between-v-within} to decompose changes in polarization into those attributable to within- and between-party trends.
 \Cref{fig:gss-within-v-between} shows these results.
-We find that the breakdown varies across topic:
+I find that the breakdown varies across topic:
 Trends in affirmative action, free speech, police polarization are driven entirely by within-party changes.
 Trends in polarization on race and welfare issues are driven entirely by between-party changes.
 Interestingly, spending polarization exhibits a ``switch'': Volatility in the 1990s and in the wake of the 2008 financial crisis stemmed from within-party disagreement, but the COVID-19 spending polarization bump was driven by between-party differences.
@@ -111,7 +111,7 @@ See \cref{sec:other-decompositions} for analogues to \cref{fig:gss-within-party,
 		The blue line shows the ``dimensional-collapse-only'' counterfactual holding total variance to its original value.
 		The green line shows the ``general-disagreement-only'' counterfactual by fixing spectral concentration at its original value.
 		The two counterfactuals multiply to produce the observed change.
-		We pool to five-year bins for additional power.
+		I pool to five-year bins for additional power.
 		% \inlinetodo{add initial decompositions to the facet strip}
 	}
 \end{figure}
@@ -124,7 +124,7 @@ See \cref{sec:other-decompositions} for analogues to \cref{fig:gss-within-party,
 	\notes{
 		They gray line shows overall polarization.
 		The colored lines show polarization within self-identified political party.
-		We pool to five-year bins for additional power.
+		I pool to five-year bins for additional power.
 	}
 \end{figure}
 
@@ -138,7 +138,7 @@ See \cref{sec:other-decompositions} for analogues to \cref{fig:gss-within-party,
 		The blue line shows the ``between-party-only'' counterfactual holding the within-group polarization fixed.
 		The green line shows the ``within-group-only'' counterfactual holding the between-group polarization fixed.
 		The two counterfactuals add to produce the observed change.
-		We pool to five-year bins for additional power.
+		I pool to five-year bins for additional power.
 		% \inlinetodo{add initial decompositions to the facet strip}
 	}
 \end{figure}

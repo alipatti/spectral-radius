@@ -1,7 +1,7 @@
 \section{Decompositions}
 \label{sec:decompositions}
 
-We now develop the two decompositions introduced in \cref{sec:intro}.
+I now develop the two decompositions introduced in \cref{sec:intro}.
 
 \subsection{General Disagreement and Cross-Issue Correlation}
 \label{sec:trace-concentration}
@@ -12,11 +12,11 @@ The fact that the spectral norm of the covariance matrix can be understood as th
 	\ = \ \lambda_1
 	\ = \ \tr \Sigma \cdot \lambda_1 / \tr \Sigma.
 \end{equation}
-We call the first component the total variance and the second component the ``spectral concentration''.
+I call the first component the total variance and the second component the ``spectral concentration''.
 
 By itself, this decomposition is somewhat useful in telling us how much variation projects onto a single dimension, but it's real utility comes in unpacking the source of the difference between two distributions' polarization.
 For example, suppose that there are two distributions $\mathcal F_0$ and $\mathcal F_t$ with covariance matrices $\Sigma_0$ and $\Sigma_t$ respectively.
-Then, we can decompose the percentage difference in their polarizations as the change in total variance times the change in spectral concentration:
+Then, I can decompose the percentage difference in their polarizations as the change in total variance times the change in spectral concentration:
 \begin{equation}
 	\label{eq:percent-change-trace-concentration}
 	\frac{\norm{\Sigma_1}_2}{\norm{\Sigma_0}_2}
@@ -60,7 +60,7 @@ Then, we can decompose the percentage difference in their polarizations as the c
 \label{sec:between-v-within}
 
 The following section explores how polarization can come from both disagreement \emph{within} a particular group (e.g. disagreement among Democrats about immigration) and disagreement \emph{between} groups (e.g. Democrats and Republicans hold, on average, quite different opinions about law enforcement).
-To start, we amend our statistical setup to allow for such groupings.
+To start, I amend our statistical setup to allow for such groupings.
 %
 In particular, let
 \begin{equation}
@@ -70,7 +70,7 @@ In particular, let
 \end{equation}
 be an integer indicating the group to which individual $i$ belongs.
 (In particular, the group $z_i$ may be correlated with opinions $x_{ij}$.)
-% We allow each group to draw their opinions from an entirely different distribution, so the revealed opinions of indivual $i$ on each of the $j$ issues is given by
+% I allow each group to draw their opinions from an entirely different distribution, so the revealed opinions of indivual $i$ on each of the $j$ issues is given by
 % \begin{equation}
 % 	x_{ij} = \sum_g \mathbf 1 (z_i = g) \cdot x_{ijg}
 % \end{equation}
@@ -90,7 +90,7 @@ where $\mu_g = \E{\mathbf x_{i} \given z_i = g}$ are the average opinions of gro
 Unfortunately, the spectral norm is not linear, so this does not immediately yield a within- and between-group decomposition of $\norm \Sigma _2$.
 Fortunately, it is \emph{sub-linear}.\footnote{Meaning $\norm{A + B}_2 \leq \norm A_2 + \norm B_2$, i.e., it satisfies the triangle inequality.}.
 
-If we let $\Sigma_w$ and $\Sigma_b$ denote the within- and between-group components of the decomposition in \cref{eq:within-between-decomposition-of-sigma}, the triangle inequality lets us write $\norm{\Sigma}_2$ as the sum of $\norm{\Sigma_w}_2$ and $\norm{\Sigma_b}_2$, less an additional slack term $s_b \geq 0$ that captures the tightness of the triangle inequality for this particular pair of matrices:
+Letting $\Sigma_w$ and $\Sigma_b$ denote the within- and between-group components of the decomposition in \cref{eq:within-between-decomposition-of-sigma}, the triangle inequality lets us write $\norm{\Sigma}_2$ as the sum of $\norm{\Sigma_w}_2$ and $\norm{\Sigma_b}_2$, less an additional slack term $s_b \geq 0$ that captures the tightness of the triangle inequality for this particular pair of matrices:
 \begin{equation}
 	\label{eq:norm-sigma-decomposition-1}
 	\norm{\Sigma}_2 = \norm{\Sigma_w}_2 + \norm{\Sigma_b}_2 - s_b.
@@ -102,14 +102,14 @@ In our setting, this is means that $s_b$ captures the difference in the directio
 Small $s_b$ means that groups disagree along a similar axis amongst themselves as the disagreement between groups.
 Large $s_b$ means that the directions of polarization are different.
 
-However, we are often concerned not just with difference in the direction of polarization between $\Sigma_b$ and $\Sigma_w$, but the differences in the directions of polarization among the groups themselves.
+However, one is often concerned not just with difference in the direction of polarization between $\Sigma_b$ and $\Sigma_w$, but the differences in the directions of polarization among the groups themselves.
 Are Democrats internally polarized along the same axes as Republicans?
-To get at this, we can further decompose $\norm{\Sigma_2}_2$ into the norms of its individual group-specific covariance matrices plus another slack term $s_b \geq 0$:
+To get at this, I can further decompose $\norm{\Sigma_2}_2$ into the norms of its individual group-specific covariance matrices plus another slack term $s_b \geq 0$:
 \begin{equation}
 	\norm{\Sigma}_2 = \sum_i p_i \norm{\Sigma_i}_2 + s_w - \norm{\Sigma_b}_2 - s_b.
 \end{equation}
 Here, $s_w$ captures the degree to which each group is polarized on a different set of issues in the same way that $s_b$ in \cref{eq:norm-sigma-decomposition-1} above captured how the direction of polarization differed between $\Sigma_w$ and $\Sigma_b$.
-For simplicity of presentation, we typically combine both slack terms and the between-group polarization into a single ``between-group'' category:
+For simplicity of presentation, I typically combine both slack terms and the between-group polarization into a single ``between-group'' category:
 \begin{equation}
 	\label{eq:norm-sigma-decomposition-final}
 	\norm{\Sigma}_2
@@ -128,5 +128,5 @@ The payoff from all this math is that both terms in \cref{eq:norm-sigma-decompos
 \end{itemize}
 
 Similarly to the previous section, the utility of this decomposition comes largely from its ability to partition \emph{changes} into those due to within-group vs between-group increases in polarization.
-In particular, \cref{sec:party-decomp} presents results where we fix either the within-or between group component to its initial value and let only the other component play out over time.
+In particular, \cref{sec:party-decomp} presents results where I fix either the within-or between group component to its initial value and let only the other component play out over time.
 

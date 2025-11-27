@@ -12,7 +12,7 @@ An initial important observation is that prevalence of extreme opinions alone is
 For example, a question asking respondents to rate their support of slavery would get nearly universal strong opposition, yet this is not a particularly polarizing issue.
 Polarization requires disagreement, i.e., spread in the distribution of responses \parencite{abramowitz-saunders-2008-polarization-myth}.
 
-The simplest measure of a distribution's spread (and the one we proceed with for the remainder of this paper) is its variance.
+The simplest measure of a distribution's spread (and the one I proceed with for the remainder of this paper) is its variance.
 On distributions with finite and bounded support---i.e., most survey questions---this closely matches one's intuition about what constitutes a highly-polarized distribution.
 For example, on binary a binary yes-or-no question, variance is maximized when responses are evenly split between the two options.
 For a question asking one to numerically rank their agreement or disagreement with a particular statement, variance is maximized when responses are evenly split between the two extremes.
@@ -26,7 +26,7 @@ equal to a half at the minimum and maximum values of $A$ and zero elsewhere.
 % 	\end{cases}
 % \end{equation}
 One downside to using variance as the basis of our analysis is that the exact numeric values are sensitive to scale and---on their own---quite meaningless.
-However, at a fixed scale, we can still get insight into the evolution of polarization over time.
+However, for a fixed scale, one can still get insight into the evolution of polarization over time.
 
 % \inlinetodo{Connect tail heaviness to variance for discrete bounded distributions?}
 
@@ -41,11 +41,11 @@ A first attempt at an interpretable scalar summary measure is to simply take the
 This is a good start, but it fails to take into account any of the correlational structure between responses.
 Indeed, much of the political science literature notes that a key feature of a ideologically-polarized society is a high-degree of correlation between opinions on separate issues, or in the words of \textcite{drutman-2020-doom-loop}, a society that is  ``locked in a zero-sum struggle along a single `us-vs-them' dimension.''
 
-A counterintuitive, but ultimately fruitful, idea is to abstract away entirely from the specifics of our polarization setting and instead think about the goal in an abstract mathematical sense: We have some object (our covariance matrix) in a high-dimensional vector space, and we'd like some scalar measure of its ``size''.
+A counterintuitive, but ultimately fruitful, idea is to abstract away entirely from the specifics of our polarization setting and instead think about the goal in an abstract mathematical sense: One has some object (a covariance matrix) in a high-dimensional vector space, and we'd like some scalar measure of its ``size''.
 The mathematical concept of a norm provides exactly this.
 In $\R^n$, one typically uses the Euclidian ($\mathcal L_2$) norm, but unfortunately in matrix spaces, there are many choices choices for a norm with \emph{a priori} no obvious ``best'' option.
 We've already met one---the trace of a matrix is indeed a norm called the \emph{trace}, \emph{Ky Fan}, or \emph{nuclear norm}.
-We've already seen the trace norm's shortcomings, so we focus on two other options: the spectral norm and the Frobenius norm.
+We've already seen the trace norm's shortcomings, so I focus on two other options: the spectral norm and the Frobenius norm.
 
 There are many equivalent ways to define the spectral norm $\norm \Sigma_2$\footnote{
 	For example: as the largest singular value; as the $\mathcal L_\infty$ norm of the singular values; as the $\mathcal L_2$ operator norm.
@@ -53,7 +53,7 @@ There are many equivalent ways to define the spectral norm $\norm \Sigma_2$\foot
 	This is equivalent to the spectral norm because covariance matrices are always positive semidefinite.
 }
 The benefit of this definition is that the spectral norm is now easily interpretable as the variance of the responses' first principal component \parencite{anderson-1963-pca-asymptotics, jolliffe-2002-pca} and therefore combines information about the dispersion on individual issues with how much the dispersion projects onto a single dimension.
-We explore this interpretation further in \cref{sec:trace-concentration}.
+I explore this interpretation further in \cref{sec:trace-concentration}.
 
 The Frobenius norm $\norm{\Sigma}_F$ also can be understood in terms of principal components:
 If $\lambda_1, \ldots, \lambda_p$ are the eigenvalues of $\Sigma$ (equivalently, the variances of each of the principal components), the Frobenius norm can be written as $\sqrt{\lambda_1^2 + \cdots + \lambda_p^2}$, i.e., the Euclidean norm of the eigenvalue vector.
@@ -62,7 +62,7 @@ In some sense, this is a ``smoother'' summary of $\Sigma$'s eigenvalues than the
 
 \Cref{fig:gss-example} provides an illustration of each of these norms applied to survey responses on two issues from the General Social Survey \parencite{gss}.
 \cref{fig:norm-comparison} summarizes how each norm relates to the eigenvalues of the covariance matrix.
-We elect to use the spectral norm for the remainder of the paper due to its simple interpretation as the variance of the first principal component, but our qualitative findings hold almost identically for other norm choices.
+I elect to use the spectral norm for the remainder of the paper due to its simple interpretation as the variance of the first principal component, but our qualitative findings hold almost identically for other norm choices.
 
 \begin{figure}
 	% \centering
@@ -106,11 +106,11 @@ We elect to use the spectral norm for the remainder of the paper due to its simp
 \subsection{Statistical Formalization and Notation}
 \label{sec:formalization}
 
-We now we formalize our data setup and estimand, present an estimator, and prove some basic properties about it.
+I now formalize our data setup and estimand, present an estimator, and prove some basic properties about it.
 %
-In particular, we assume that we observe i.i.d. samples $\mathbf x_1, \ldots, \mathbf x_n \sim \mathcal F$ with $\mathbf x_i = \paren{x_{i1}, \ldots, x_{ip}}$, drawn from some underlying distribution of political opinions $\mathcal F$.
+In particular, I assume that I observe i.i.d. samples $\mathbf x_1, \ldots, \mathbf x_n \sim \mathcal F$ with $\mathbf x_i = \paren{x_{i1}, \ldots, x_{ip}}$, drawn from some underlying distribution of political opinions $\mathcal F$.
 Each $x_{ij}$ is the opinion of individual $i$ on issue $j$.
-Notably, we make no assumptions about the distribution $\mathcal F$ from which the responses are drawn except that it has a finite covariance matrix $\Sigma = \Var(\mathbf x_i)$.
+Notably, I make no assumptions about the distribution $\mathcal F$ from which the responses are drawn except that it has a finite covariance matrix $\Sigma = \Var(\mathbf x_i)$.
 Let $\lambda_1, \ldots, \lambda_p$ be the eigenvalues of $\Sigma$ ordered from largest to smallest.
 Then, the estimand of interest is $\rho = \norm{\Sigma}_2 = \lambda_1$, the spectral radius of $\Sigma$.
 
@@ -147,6 +147,6 @@ The following proposition formalizes that notion:
 	\end{enumerate}
 \end{proposition}
 
-Note that this proposition is quite flexible: we make no assumptions about the latent distribution other than it has a finite second moment.
+Note that this proposition is quite flexible: I make no assumptions about the latent distribution other than it has a finite second moment.
 Additionally, the error term is also allowed to take any form---in particular it can have complex non-diagonal covariance structure.
 See \cref{sec:deferred-proofs} for proof.
