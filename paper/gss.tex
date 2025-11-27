@@ -1,44 +1,43 @@
 \section{Application in the General Social Survey}
 \label{sec:gss}
 
-\inlinetodo{Make sure that all referenced results are still true with new categorization}
-
-% \subsection{Data and Meethods}
-
-We now apply our techniques to the General Social Survey---a bi-annual poll of the American public on a broad variety of social, political, and idological topics administered by NORC at the University of Chicago \parencite{gss}.
-Because the GSS asks many of the same questions year after year, it provides a good setting to apply the techniques developed over the previous two sections to probe the evolution of public ideological polarization.
-
-I restrict to questions that have been asked repeatedly over the past three decades and manually categorize questions into one of nine topics: abortion, affirmative action, free speech, government spending, police, race, sex and birth control, welfare, and miscellaneous.
+We now apply our techniques to the General Social Survey---a bi-annual poll of the American public on a broad variety of social, political, and ideological topics administered by NORC at the University of Chicago \parencite{gss}.
+I restrict to questions that have been asked repeatedly over the past three decades and manually categorize questions into one of eight topics: abortion, affirmative action, free speech, government spending, police and justice, race, sex and birth control, and welfare.
 For each category, \cref{sec:gss-questions} enumerates the selected survey questions, their text, and the possible responses.
 
 To encode survey responses as numeric values to which I can apply my polarization measure, I map the minimum response to -1, the maximum response to +1, and the remaining responses evenly-spaced between those two values.
-For example, binary quesetions are encoded as $\pm 1$ and questions with three options are mapped into $(-1, 0, +1)$.
-This handles all questions for which the responses are binary or admit some ordinal structure (e.g. rating one's agreement with a statement).
-I only include questions fall under one of these categories.%
+For example, binary questions are encoded as $\pm 1$ and questions with three options are mapped into $(-1, 0, +1)$.
+I only include questions that are binary or admit some ordinal structure (e.g. rating one's agreement with a statement).%
 \footnote{A future version of this working paper will explore the impact of different methods of numerically encoding survey responses (e.g., using quantiles).}
-To deal with missingness (arising from people electing not to answer a survey question), I estimate each entry of the covariance matrix using all pairs for which both issues contain a response.%
+To deal with missingness (arising from certain people receiving only a subset of survey questions and people electing not to respond), I estimate each entry of the covariance matrix using all pairs for which both questions contain a response.%
 \footnote{
-	The number of missing responses is in general very small, so there is little room for this choice to introduce bias in our results.
-	Additionally, to affect any of our trends, this bias would have to dynamically evolve over time.
-	This does allow the possibility of a non-PSD covariance estimate, but the probability of this vanishes as $n \to \infty$.
+	% The number of missing responses is in general very small, so there is little room for this choice to introduce bias in our results.
+	The is equivalent to a missing-at-random assumption, which I will evaluate in a future version of this working paper.
+	However, to affect any of our trends, this bias would have to dynamically evolve over time.
+	This also does create the possibility of a non-PSD covariance estimate, but the probability of this vanishes as $n \to \infty$.
 }
+We use the provided \texttt{WTSSPS} survey weight.
 
 \subsection{Overall Trends}
 \label{sec:overall-trends}
 
-\autoref{fig:gss-time-series} shows how polarization---as measured by the spectral radius---evolves over time for the nine previously-mentioned issue groups.
+\cref{fig:gss-time-series} shows how polarization---as measured by the spectral radius---evolves over time for the eight previously-mentioned topics.
 %
 Polarization on sex and birth control, affirmative action, police, and welfare rise steadily throughout our entire period.
 %
-Polarization surrounding government spending also rises throughout, but exhibits more volitility.
+Polarization surrounding government spending also rises throughout, but exhibits more volatility.
 In particular, there are large spikes during the mid 1990s,\footnote{
 	This spike is entirely due to polarization amongst Republicans; see \cref{fig:gss-within-party}.
 } the 2008 financial crisis, and the COVID-19 pandemic.
 
-Polarization on race issues drops steadily throughout 1990s and 2000s before turning around and beginning to increase again around 2012. By 2021, polarization sits 20 percent higher than its 1990 level.
+We find steady increases in polarization on all topics except free speech and race.
 %
-Polarization on free speech drops fairly steadily for the first three decades of our period before percipitously falling nearly 20 percent during the late 2010s and early 2020s.
-% \inlinetodo{correct free speech questions}
+Free speech issues exhibit steady decline in polarization throughout the 1990s and 2000s before spiking in the wake of the 2008 financial crisis.
+Polarization then remains high throughout the 2010s before plummeting again during the COVID-19 pandemic.
+%
+On race issues, polarization remains flat throughout our entire period with the exception of an enormous spike in polarization during the early 2020s.
+%
+Additionally, spending polarization exhibits spikes during the mid 1990s, the 2008 financial crisis, and the COVID-19 pandemic.
 
 \subsection{Dimensional Collapse or Increase in General Disagreement?}
 \label{sec:trace-concentration-decomp}
@@ -47,10 +46,10 @@ In \cref{sec:trace-concentration}, I demonstrated a decomposition of the spectra
 I now explore which of these two components is driving the observed trends.
 Are increases in polarization stemming from people becoming increasingly one dimensional in their opinions, or are people simply disagreeing more in general?
 
-To determine the proportion of change attributable to dimensional collapse, I fix the total variance component of \autoref{eq:percent-change-trace-concentration} to its initial value and let only the spectral concentration evolve over time. To see the change attributable to increase in total variance, I fix the spectral concentration to its initial value and let only the total variance evolve. These two counterfactuals multiply together to equal the true observed change. \cref{fig:gss-spectral-concentration} illustrates the results.
+To determine the proportion of change attributable to dimensional collapse, I fix the total variance component of \cref{eq:percent-change-trace-concentration} to its initial value and let only the spectral concentration evolve over time. To see the change attributable to increase in total variance, I fix the spectral concentration to its initial value and let only the total variance evolve. These two counterfactuals multiply together to equal the true observed change. \cref{fig:gss-spectral-concentration} illustrates the results.
 
-In general, most trends are driven by increases in total variance with spectral concentration even decreasing over time in some cases (e.g. police).
-The most obvious exceptions to this trend are (1) race issues, which have exhibited a sharp uptick in spectral concentraion over the last decade and (2) abortion issues, which exhibit a ``U'' shape with total variance increasing from 1990 until around 2010 before decreasing sharply from 2010 until the present.
+In general, most trends are driven by increases in total variance with spectral concentration even decreasing over time in some cases (e.g. speech, police).
+The most obvious exceptions to this trend are (1) race issues, where increases in spectral concentration explain the entire spike in the early 2020s, and (2) abortion issues, which exhibit a ``U'' shape with total variance increasing from 1990 until around 2010 before decreasing sharply from 2010 until the present.
 
 \subsection{Within or Between Political Parties?}
 \label{sec:party-decomp}
@@ -64,21 +63,22 @@ We counterintuitively find that within-party polarization is typically comparabl
 Democrats are generally more polarized on police, race and affirmative action and are united on welfare and spending issues.
 Republicans are polarized on spending and sex and united on policing, race, and affirmative action.
 %
-Interestingly, this exercise also reveals how both bump in spending polarization during the 1990s and the spike in police-related polarization post George Floyd are driven by disagreement \emph{within} the Republican party.%
+Interestingly, this exercise also reveals how both the bump in spending polarization during the 1990s and the spike in police-related polarization post George Floyd are driven by disagreement \emph{within} the Republican party.%
 \footnote{
 	Party is obviously endogenous to one's political and ideological beliefs, so results from this section should all be taken with a grain of salt.
-	We also present results by self-reported idology (liberal v. conservative) in \autoref{sec:other-decompositions}.
+	We also present results by self-reported ideology (liberal v. conservative) in \cref{sec:other-decompositions}.
 }
 
-We then leverage the framework of \cref{sec:between-v-within} to decompose changes in polarization into those attributable to within- and between-group trends.
+We then leverage the framework of \cref{sec:between-v-within} to decompose changes in polarization into those attributable to within- and between-party trends.
+\Cref{fig:gss-within-v-between} shows these results.
 We find that the breakdown varies across topic:
-Trends in free speech and police polarization are driven entirely by within-party changes.
+Trends in affirmative action, free speech, police polarization are driven entirely by within-party changes.
 Trends in polarization on race and welfare issues are driven entirely by between-party changes.
 Interestingly, spending polarization exhibits a ``switch'': Volatility in the 1990s and in the wake of the 2008 financial crisis stemmed from within-party disagreement, but the COVID-19 spending polarization bump was driven by between-party differences.
 This is in line with a more broad pattern of an uptick in between-party polarization in the last five years.
-\Cref{fig:gss-within-v-between} shows these results.
 
 \subsection{What About Gender? Age? Race? Religion?}
+\label{sec:gss-other-groups}
 
 If the divergence of political parties is not entirely to blame for increasing polarization, are there other demographic characteristics that explain the increases?
 %
@@ -94,7 +94,11 @@ See \cref{sec:other-decompositions} for analogues to \cref{fig:gss-within-party,
 	\caption{Polarization Over Time by Issue Category}
 	\label{fig:gss-time-series}
 	\input{./figures/gss/pooled/pooled.pgf}
-	\notes{\XX Bootstrap standard errors leveraging asymptotic normality are forthcoming in a future version of this working paper.}
+	\notes{
+	The $x$-axis shows year; the $y$-axis shows the spectral radius of the covariance matrix for responses to GSS survey questions in that year.
+	\Cref{sec:gss-questions} enumerates the questions included in each category.
+	Bootstrap standard errors leveraging asymptotic normality are forthcoming in a future version of this working paper.
+}
 \end{figure}
 
 \begin{figure}
@@ -108,7 +112,7 @@ See \cref{sec:other-decompositions} for analogues to \cref{fig:gss-within-party,
 		The green line shows the ``general-disagreement-only'' counterfactual by fixing spectral concentration at its original value.
 		The two counterfactuals multiply to produce the observed change.
 		We pool to five-year bins for additional power.
-		\inlinetodo{add initial decompositions to the facet strip}
+		% \inlinetodo{add initial decompositions to the facet strip}
 	}
 \end{figure}
 
@@ -135,7 +139,7 @@ See \cref{sec:other-decompositions} for analogues to \cref{fig:gss-within-party,
 		The green line shows the ``within-group-only'' counterfactual holding the between-group polarization fixed.
 		The two counterfactuals add to produce the observed change.
 		We pool to five-year bins for additional power.
-		\inlinetodo{add initial decompositions to the facet strip}
+		% \inlinetodo{add initial decompositions to the facet strip}
 	}
 \end{figure}
 % \end{landscape}

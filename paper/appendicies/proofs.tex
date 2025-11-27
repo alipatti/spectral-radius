@@ -26,7 +26,7 @@ See \textcite{anderson-2003-multivariate} for more.
 	If $\Sigma$ has eigenvalues $\lambda_1 \geq \lambda_2 \geq \cdots \geq \lambda_p \geq 0$ with corresponding sample eigenvalues $\hat\lambda_1 \ge \hat\lambda_2 \ge \cdots \ge \hat\lambda_p$, then
 	\begin{equation}
 		\sqrt{n} \paren{\hat\lambda_i - \lambda_i}
-		\overset{\tiny d}{\longrightarrow}
+		\overset{d}{\longrightarrow}
 		N\!\paren{0,\;\sigma_i^2},
 		\qquad i=1,\dots,p.
 	\end{equation}
@@ -40,14 +40,14 @@ See \textcite{anderson-2003-multivariate} for more.
 	The non-normal case will be of most use to us because most survey data is decidedly not normal (e.g. binary response or multiple choice).
 \end{proof}
 
-Asymptotic normality and consistency of the spectral radius estimator follow trivially from \autoref{prop:sample-eigenvalue-consistency} and \autoref{prop:sample-eigenvalue-normality}.
+Asymptotic normality and consistency of the spectral radius estimator follow trivially from \cref{prop:sample-eigenvalue-consistency} and \cref{prop:sample-eigenvalue-normality}.
 
 \subsection{Latent Model}
 
-We first establish a few lemmas that greatly simiplify the proof.
-The first is regarding the spectral radius of a positive rank-one update to a positive semidefinite matrix, which we prove as conesequence of Weyl's inequalities \cite{weyl-1912-inequalities}.
+We first establish a few lemmas that greatly simplify the proof.
+The first is regarding the spectral radius of a positive rank-one update to a positive semidefinite matrix, which we prove as consequence of Weyl's inequalities \parencite{weyl-1912-inequalities,tao-2010-eigenvalue-blog}.
 This result is very similar in flavor those of \textcite{golub-1973-eigenvalues}.
-We then leverage this to prove our proposition and close with a discussion of two suffcient conditions under which the phrase "non-decreasing" on the last line of \autoref{thm:one-dim-implies-multiple-dim} becomes "strictly increasing".
+We then leverage this to prove our proposition and close with a discussion of two sufficient conditions under which the phrase "non-decreasing" on the last line of \cref{thm:one-dim-implies-multiple-dim} becomes "strictly increasing".
 
 \begin{lemma}
 	\label{lem:rank-one-update}
@@ -65,7 +65,7 @@ We then leverage this to prove our proposition and close with a discussion of tw
 
 \begin{lemma}
 	\label{lem:rank-one-update-increasing}
-	Let the setup be the same as in \autoref{lem:rank-one-update}. Then $\rho(c v v \trans + D)$ is non-decreasing with respect to $c$.
+	Let the setup be the same as in \cref{lem:rank-one-update}. Then $\rho(c v v \trans + D)$ is non-decreasing with respect to $c$.
 \end{lemma}
 
 \begin{proof}
@@ -77,19 +77,19 @@ We then leverage this to prove our proposition and close with a discussion of tw
 			\ \geq \ \rho(c v v \trans + D)
 		\end{aligned}
 	\end{equation}
-	by \autoref{lem:rank-one-update} because $c v v \trans + D \succeq 0$ by the closure of positive semidefinite matrices under addition.
+	by \cref{lem:rank-one-update} because $c v v \trans + D \succeq 0$ by the closure of positive semidefinite matrices under addition.
 \end{proof}
 
 Proof of the original result is now quite simple:
 
-\begin{proof}[Proof of \autoref{thm:one-dim-implies-multiple-dim}]
+\begin{proof}[Proof of \cref{thm:one-dim-implies-multiple-dim}]
 	The spectral radius of $\Sigma$ is
 	\begin{equation}
 		\rho(\Sigma)
 		\ = \ \rho(\Var(\beta x + \epsilon))
 		\ = \ \rho(a \beta \beta \trans + \Gamma)
 	\end{equation}
-	Because $\Gamma$ is a covariance matrix, it's symmetric and positive semidefinite and \autoref{lem:rank-one-update-increasing} gives us that $\rho(\sigma)$ is non-decreasing in $a$ as desired.
+	Because $\Gamma$ is a covariance matrix, it's symmetric and positive semidefinite and \cref{lem:rank-one-update-increasing} gives us that $\rho(\sigma)$ is non-decreasing in $a$ as desired.
 \end{proof}
 
 Strict increase if $\beta$ nontrivially projects onto the first eigenspace of $\Gamma$. This happens on all but a measure zero subset of possible $(\beta, \Gamma)$ pairs.

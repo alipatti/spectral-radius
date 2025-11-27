@@ -1,31 +1,46 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-Introduced and motivated a new measure of polarization in the general public that is broadly applicable to all sorts of data.
-Showed several decomposition of measure with intuitive interpretations.
+In this paper, I develop measure of mass ideological polarization based on the joint distribution of people's opinions.
+Concretely, I compute the covariance matrix of responses to various survey questions about views on policy and ideology, and then use the matrix's spectral radius as a measure of polarization.
+Intuitively, this captures both the degree to which people disagree on individual issues \emph{and} the between-issue correlation of opinions (\cref{sec:theory}).
 
-Showed using data from the General Social Survey that polarization in the general public has increased over the last three decades across a wide variety of topics.
-This is contrary to general poli sci literature which generally holds that polarization has only increased among elites (e.g. politicians).
+Next, I present two decompositions that begin to explore not just whether polarization has increased, but \emph{why}.
+The first decomposition partitions polarization into a term capturing the degree to which opinions project onto a single ``us–vs–them'' axis and a term capturing the strength of disagreement in general. The second decomposition partitions changes into within- and between-group components (\cref{sec:decompositions}).
 
-These changes are being driven by a variety of factors, both within and across political parties.
-
+Finally, I apply these methods to three decades of survey data, producing an evolving portrait of ideological polarization in the American public (\cref{sec:gss}).
+I find that polarization rises on most topics since the early 1990s (\cref{sec:overall-trends}), driven mostly by increases in general disagreement rather than increased cross-issue opinion correlation (\cref{sec:trace-concentration-decomp}) and by increases in disagreement within groups rather than between them (\cref{sec:party-decomp,sec:gss-other-groups}).
+Taken together, this evidence challenges accounts that increasing polarization is due to demographic sorting alone.
 
 \subsection{Future Work}
 
-Explore wider variety of topics.
-Would loved to have looked at immigration, but GSS doesn't provide good longitudinal info.
+This paper leaves significant room for future work.
+First, one could explore a wider variety of topics using other data sets (for example, the American National Election Studies from \textcite{anes}).
+For example, the GSS does not ask any long-running questions about views on immigration---a currently polarizing issue.
 
-Many subgroup cuts are endogenous (e.g. political party, idology).
-Would be nice to use a panel dataset to fix characteristics at t=0.
+Second, the repeated cross-section structure of this paper's data means that the within- versus between-party analysis is effectively conditioning on an endogenous characteristic.
+A panel data set would allow one to fix political party (or any other covariate) at some initial $t=0$, then see how polarization evolves within those static groups.
+\footnote{The GSS and Pew Research do provide panel survey data sets, although their scope is fairly small and both panels cover a far shorter of a time period than the corresponding repeated cross-section.}
 
-Use other data sets.
-
-Look at political elites, e.g. congresspeople.
-See how elite polarization correlates with constituent polarization.
-Use LLM to produce panel of responses to many survey questions.
-Decompose into entry/exit vs. changing opinions of people within.
+Third, future work could explore the relationship between polarization of political elites (e.g. congresspeople) and the polarization of their constituents.
+Do polarized electorates produce polarize politicians?
+For example, an extension of the decompositions in \cref{sec:decompositions} could be used to decompose trends in congressional ideological polarization into a component contributed by changing opinions of incumbents and a component contributed by turnover of elected officials.
+Are lifetime politicians becoming more polarized in their views, or is congressional polarization a symptom of strongly-opinionated new representatives?
 
 Look at the effect of some sort of exogenous shock on polarization.
-Geographic variation.
+For example, \textcite{autor-dorn-hanson-majlesi-2020-importing-political-polarization} find that 
 
-Take into account clustering rather than just spread \parencite{esteban-ray-1994-measurement-polarization, duclos-esteban-2004-polarization-concepts}.
+increased polarization in trade-exposed areas---as measured by electoral turnout and campaign contributions.
+Does my measure pick up this same phenomenon?\footnote{
+	Granular geographic identifiers are available for the GSS \href{https://gss.norc.org/content/dam/gss/get-documentation/pdf/other/ObtainingGSSSensitiveDataFiles.pdf}{via application}.
+}
+
+More broadly: can we get geographic variation and then use this to study mechanisms?
+Would be statistical issues:
+Would have to account for finite sample upward bias in spectral radius estimate.
+Could help with this and general power issues by using a Bayesian approach, e.g. fit prior on the eigenvector/change-of-basis diagonalizing matrix or some sort of Markov-field smoother over space.
+(Borrowing information from nearby places about the sorts of issues that people are polarized on.)
+
+% Extend our measure to take into account clustering rather than just spread \parencite{esteban-ray-1994-measurement-polarization, duclos-esteban-2004-polarization-concepts}.
+% (In bounded data, increased spread inherently creates clustering at the extremes.)
+

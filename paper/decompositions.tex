@@ -1,10 +1,12 @@
 \section{Decompositions}
 \label{sec:decompositions}
 
-\subsection{First Principal Component}
+We now develop the two decompositions introduced in \cref{sec:intro}.
+
+\subsection{General Disagreement and Cross-Issue Correlation}
 \label{sec:trace-concentration}
 
-The fact that the spectral norm of the covariance matrix can be understood as the variance of the first principal component means that $\norm \Sigma _2$ admits a straightforward multiplicative decomposition as the total variance ($\tr \Sigma$) times the explanatory power of the first principal component ($\lambda_1 / \tr \Sigma$):
+The fact that the spectral norm of the covariance matrix can be understood as the variance of the first principal component means that $\norm \Sigma _2$ admits a straightforward multiplicative decomposition as the total variance ($\tr \Sigma$) times the proportion of variance explained by the first principal component ($\lambda_1 / \tr \Sigma$):
 \begin{equation}
 	\norm{\Sigma}_2
 	\ = \ \lambda_1
@@ -21,12 +23,11 @@ Then, we can decompose the percentage difference in their polarizations as the c
 	\ = \ \frac{\tr \Sigma_1}{\tr \Sigma_0} \cdot \frac{\lambda_{0,1} / \tr \Sigma_0}{\lambda_{t,1} / \tr \Sigma_t}
 \end{equation}
 
-\Cref{fig:stretch-v-scale} illustrates this idea, and in \cref{sec:trace-concentration-decomp} discusses results from applying this technqiue to survey data to decompose changes in the polarization of the American public over time.
-We find that most changes are due to changes in the total variance term.
+\Cref{fig:stretch-v-scale} illustrates this idea, and in \cref{sec:trace-concentration-decomp} discusses results from applying this technique to survey data to decompose changes in the polarization of the American public over time.
 
 \begin{figure}
 	\centering
-	\caption{\XX}
+	\caption{Same Increase in Spectral Radius, Two Different Reasons}
 	\label{fig:stretch-v-scale}
 	\includegraphics{./figures/examples/decomps/stretch_v_scale/stretched.pdf}%
 	\hspace{.5in}
@@ -42,15 +43,15 @@ We find that most changes are due to changes in the total variance term.
 
 \begin{figure}
 	\centering
-	\caption{\XX}
+	\caption{Polarization Within Subgroups Can Be Lower or Higher Than Overall Polarization}
 	\label{fig:between-group-sign}
 	\includegraphics{./figures/examples/decomps/by_group/negative.pdf}%
 	\includegraphics{./figures/examples/decomps/by_group/zero.pdf}%
 	\includegraphics{./figures/examples/decomps/by_group/positive.pdf}
 	\notes{
 		The sign and magnitude of of the between-group polarization $\rho_b$ can vary greatly depending on the means and covariance structure of the groups.
-		In the left-hand panel, the individual subgroups (dashed) are distributed such that the within-group polarization is \emph{higher} than the pooled (black) polarization, i.e., $\rho_b < 0$.
-		In the center panel, the between group polarization is orthogonal to the within-group polarization and $\rho_b = 0$.
+		In the left-hand panel, the individual subgroups (dashed) are distributed such that the within-group polarization is higher than the pooled (black) polarization, i.e., $\rho_b < 0$.
+		In the center panel, the within-group principal eigenvectors are orthogonal to the between group disagreement, so $\rho_b = 0$.
 		The rightmost panel shows a scenario where the within- and between-group polarizations align to yield $\rho_b > 0$.
 	}
 \end{figure}
@@ -58,8 +59,8 @@ We find that most changes are due to changes in the total variance term.
 \subsection{Between vs. Within Groups}
 \label{sec:between-v-within}
 
-The following section explores how polarization can come from both disagreement \emph{within} a particular group (e.g. disagreement among Democrats about immigration) and disagrement \emph{between} groups (e.g. Democrats and Republicans hold, on average, quite different opinions about law enforcement).
-To start, we ammend our statistical setup to allow for such groupings.
+The following section explores how polarization can come from both disagreement \emph{within} a particular group (e.g. disagreement among Democrats about immigration) and disagreement \emph{between} groups (e.g. Democrats and Republicans hold, on average, quite different opinions about law enforcement).
+To start, we amend our statistical setup to allow for such groupings.
 %
 In particular, let
 \begin{equation}
@@ -68,11 +69,12 @@ In particular, let
 	p_1 + \cdots + p_G = 1
 \end{equation}
 be an integer indicating the group to which individual $i$ belongs.
-We allow each group to draw their opinions from an entirely different distribution, so the revealed opinions of indivual $i$ on each of the $j$ issues is given by
-\begin{equation}
-	x_{ij} = \sum_g \mathbf 1 (z_i = g) \cdot x_{ijg}
-\end{equation}
-where $x_{ijg}$ is the potential opinion of individual $i$ on issue $j$ were they a member of group $g$.
+(In particular, the group $z_i$ may be correlated with opinions $x_{ij}$.)
+% We allow each group to draw their opinions from an entirely different distribution, so the revealed opinions of indivual $i$ on each of the $j$ issues is given by
+% \begin{equation}
+% 	x_{ij} = \sum_g \mathbf 1 (z_i = g) \cdot x_{ijg}
+% \end{equation}
+% where $x_{ijg}$ is the potential opinion of individual $i$ on issue $j$ were they a member of group $g$.
 Then, the multidimensional analogue to he law of total variance \parencite[e.g.]{anderson-2003-multivariate} allows us to decompose the covariance matrix of $\mathbf x_i = (x_{i1}, \ldots, x_{ip})$ into a within- and between-group component:
 \begin{equation}
 	\begin{aligned}
@@ -83,30 +85,30 @@ Then, the multidimensional analogue to he law of total variance \parencite[e.g.]
 		 & = \underbrace{\sum_g p_g \Sigma_g}_{\substack{\text{within-group}           \\ \text{components}}} \ + \ \underbrace{\sum_g p_g \paren{\mu_g - \mu}\paren{\mu_g - \mu} \trans}_{\text{between-group component}}
 	\end{aligned}
 \end{equation}
-where $\mu_g = \E{\mathbf x_{i} \given z_i = g}$ is the mean vector of group $g$, $\Sigma_g = \Var(\mathbf x_i \given z_i = g)$ is the group's covariance matrix, and $\mu = \E{\mathbf x_i}$ is the unconditional mean.
+where $\mu_g = \E{\mathbf x_{i} \given z_i = g}$ are the average opinions of group $g$, $\Sigma_g = \Var(\mathbf x_i \given z_i = g)$ is the group's covariance matrix, and $\mu = \E{\mathbf x_i}$ is the unconditional mean.
 %
 Unfortunately, the spectral norm is not linear, so this does not immediately yield a within- and between-group decomposition of $\norm \Sigma _2$.
 Fortunately, it is \emph{sub-linear}.\footnote{Meaning $\norm{A + B}_2 \leq \norm A_2 + \norm B_2$, i.e., it satisfies the triangle inequality.}.
 
-If we let $\Sigma_w$ and $\Sigma_b$ denote the within- and between-group components of the decomposition in \autoref{eq:within-between-decomposition-of-sigma}, the triangle inequality for norms lets us write $\norm{\Sigma}_2$ as the sum of $\norm{\Sigma_w}_2$ and $\norm{\Sigma_b}_2$, less an additional slack term $s_b \geq 0$ that captures the tightness of the triangle inequality for this particular pair of matrices:
+If we let $\Sigma_w$ and $\Sigma_b$ denote the within- and between-group components of the decomposition in \cref{eq:within-between-decomposition-of-sigma}, the triangle inequality lets us write $\norm{\Sigma}_2$ as the sum of $\norm{\Sigma_w}_2$ and $\norm{\Sigma_b}_2$, less an additional slack term $s_b \geq 0$ that captures the tightness of the triangle inequality for this particular pair of matrices:
 \begin{equation}
 	\label{eq:norm-sigma-decomposition-1}
 	\norm{\Sigma}_2 = \norm{\Sigma_w}_2 + \norm{\Sigma_b}_2 - s_b.
 \end{equation}
 In general, the interpretation of $s_b$ varies depending on vector space and the norm being used,\footnote{
 	For example, with the $\mathcal L_2$ norm on $\R^n$, the slack is related to the angle between the two vectors.
-} but in our spectral-norm setup, $s_b$ captures the degree to which the principal eigenvectors of $\Sigma_w$ and $\Sigma_b$ align, with $s_b$ vanishing precisely when the principal eigenvectors collide (or when one of the matrices is zero).
+} but in our spectral-norm setup, $s_b$ captures the degree to which the principal eigenvectors of $\Sigma_w$ and $\Sigma_b$ align, with $s_b$ vanishing precisely when the principal eigenvectors are collinear.
 In our setting, this is means that $s_b$ captures the difference in the direction of polarization between $\Sigma_w$ and $\Sigma_b$:
 Small $s_b$ means that groups disagree along a similar axis amongst themselves as the disagreement between groups.
 Large $s_b$ means that the directions of polarization are different.
 
-However, we are often concerned not just with the difference in the direction of polarization between $\Sigma_b$ and $\Sigma_w$, but the differences in the directions of polarization among the groups themselves.
-Do Democrats disagree in the same way on race issues as Republicans do?
+However, we are often concerned not just with difference in the direction of polarization between $\Sigma_b$ and $\Sigma_w$, but the differences in the directions of polarization among the groups themselves.
+Are Democrats internally polarized along the same axes as Republicans?
 To get at this, we can further decompose $\norm{\Sigma_2}_2$ into the norms of its individual group-specific covariance matrices plus another slack term $s_b \geq 0$:
 \begin{equation}
 	\norm{\Sigma}_2 = \sum_i p_i \norm{\Sigma_i}_2 + s_w - \norm{\Sigma_b}_2 - s_b.
 \end{equation}
-Here, $s_w$ captures the degree to which each group is polarized on a different set of issues in the same way that $s_b$ in \autoref{eq:norm-sigma-decomposition-1} above captured how the direction of polarization differed between $\Sigma_w$ and $\Sigma_b$.
+Here, $s_w$ captures the degree to which each group is polarized on a different set of issues in the same way that $s_b$ in \cref{eq:norm-sigma-decomposition-1} above captured how the direction of polarization differed between $\Sigma_w$ and $\Sigma_b$.
 For simplicity of presentation, we typically combine both slack terms and the between-group polarization into a single ``between-group'' category:
 \begin{equation}
 	\label{eq:norm-sigma-decomposition-final}
@@ -114,12 +116,12 @@ For simplicity of presentation, we typically combine both slack terms and the be
 	\ = \ \underbrace{\sum_i p_i \norm{\Sigma_i}_2}_{\rho_{\text{within}}} + \underbrace{\norm{\Sigma_b}_2 - s_w - s_b}_{\rho_{\text{between}}}.
 \end{equation}
 
-The payoff from all this math is that both terms in \autoref{eq:norm-sigma-decomposition-final} have an intuitive interpreation:
+The payoff from all this math is that both terms in \cref{eq:norm-sigma-decomposition-final} have an intuitive interpretation:
 \begin{itemize}
 	\item
-	      $\rho_w$ measures the extent to which each group is polarized amongst themselves and is simply the weighted average of the group-specific polarizations.
+	      $\rho_{\text{within}}$ measures the extent to which each group is polarized amongst themselves and is simply the weighted average of the group-specific polarizations.
 	\item
-	      $\rho_b$ measures the extent to which there is polarization across groups. The norm of the between-group covariance matrix captures increased polarization coming from different groups holding different positions.
+	      $\rho_{\text{between}}$ measures the extent to which there is polarization across groups. The norm of the between-group covariance matrix captures increased polarization coming from different groups holding different positions.
 	      The slack terms accounts for the fact that overall polarization is diminished if different groups are divided on different issues.
 	      Note that $\rho_b$ is \emph{not necessarily positive}—it can be (and often is the case) that the differing directions of polarization in individual groups ``cancel out'' the between group polarization.
 	      \Cref{fig:between-group-sign} visualizes how between-group differences can amplify, offset, or leave unchanged overall polarization depending on the axis along which each subgroup is polarized.

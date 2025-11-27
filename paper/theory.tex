@@ -1,19 +1,19 @@
 \section{Measuring Polarization}
 \label{sec:theory}
 
-\inlinetodo{briefly describe the overall flow of this section}
-
-I first intuitively describe
+% \inlinetodo{briefly describe the overall flow of this section}
+%
+% I first intuitively describe
 
 \subsection{On a Single Issue}
 
 We begin by thinking about polarization on a single issue.
 An initial important observation is that prevalence of extreme opinions alone is insufficient to measure what one intuitively thinks of as polarization.
 For example, a question asking respondents to rate their support of slavery would get nearly universal strong opposition, yet this is not a particularly polarizing issue.
-Polarization requires disagreement, i.e., spread in the distribution of responses.
+Polarization requires disagreement, i.e., spread in the distribution of responses \parencite{abramowitz-saunders-2008-polarization-myth}.
 
 The simplest measure of a distribution's spread (and the one we proceed with for the remainder of this paper) is its variance.
-On distributions with finite and bounded support (which is most survey questions), this closely matches one's intuition about what constitutes a highly-polarized distribution.
+On distributions with finite and bounded support---i.e., most survey questions---this closely matches one's intuition about what constitutes a highly-polarized distribution.
 For example, on binary a binary yes-or-no question, variance is maximized when responses are evenly split between the two options.
 For a question asking one to numerically rank their agreement or disagreement with a particular statement, variance is maximized when responses are evenly split between the two extremes.
 More generally, for any finite and discrete $A \subseteq \R$, the random variable with support over $A$ that has the highest variance has mass
@@ -25,12 +25,10 @@ equal to a half at the minimum and maximum values of $A$ and zero elsewhere.
 % 		0        & \otherwise.
 % 	\end{cases}
 % \end{equation}
-One downside to using variance as the basis of our analysis is that the exact numeric values are quite meaningless: One can get any variance they like simply by rescaling the responses.
-However, for a fixed scale, we can still get insight into the evolution of polarization over time.
+One downside to using variance as the basis of our analysis is that the exact numeric values are sensitive to scale and---on their own---quite meaningless.
+However, at a fixed scale, we can still get insight into the evolution of polarization over time.
 
-\inlinetodo{get some citations from the poli sci literature to back up this inutution that spread => polarization}
-
-\inlinetodo{Connect tail heaviness to variance for discrete bounded distributions}
+% \inlinetodo{Connect tail heaviness to variance for discrete bounded distributions?}
 
 \subsection{Across Multiple Issues}
 
@@ -39,10 +37,9 @@ For example, regarding abortion, people hold separate opinions on whether aborti
 A good measure of polarization on abortion issues should take into account the spread of public opinion on all these scenarios.
 
 A complete but high dimensional measure would be the distribution's covariance matrix $\Sigma$, however, this quickly becomes difficult to interpret as the number of issues grows.
-We'd like some real, scalar summary measure.
-A first attempt at reducing the dimensionality of our polarization index is to simply take the sum of the variances on each individual issue (i.e., the covariance matrix's trace).
+A first attempt at an interpretable scalar summary measure is to simply take the sum of the variances on each individual issue (i.e., the covariance matrix's trace).
 This is a good start, but it fails to take into account any of the correlational structure between responses.
-Indeed, much of the political science literature notes that a key feature of a ideologically-polarized society is a high-degree of correlation between opinions on separate issues, i.e., a society that is  ``locked in a zero-sum struggle along a single `us-vs-them' dimension'' \parencite{drutman-2020-doom-loop}.
+Indeed, much of the political science literature notes that a key feature of a ideologically-polarized society is a high-degree of correlation between opinions on separate issues, or in the words of \textcite{drutman-2020-doom-loop}, a society that is  ``locked in a zero-sum struggle along a single `us-vs-them' dimension.''
 
 A counterintuitive, but ultimately fruitful, idea is to abstract away entirely from the specifics of our polarization setting and instead think about the goal in an abstract mathematical sense: We have some object (our covariance matrix) in a high-dimensional vector space, and we'd like some scalar measure of its ``size''.
 The mathematical concept of a norm provides exactly this.
@@ -51,7 +48,7 @@ We've already met one---the trace of a matrix is indeed a norm called the \emph{
 We've already seen the trace norm's shortcomings, so we focus on two other options: the spectral norm and the Frobenius norm.
 
 There are many equivalent ways to define the spectral norm $\norm \Sigma_2$\footnote{
-	For example: as the largest signular value; as the $\mathcal L_\infty$ norm of the singular values; as the $\mathcal L_2$ operator norm.
+	For example: as the largest singular value; as the $\mathcal L_\infty$ norm of the singular values; as the $\mathcal L_2$ operator norm.
 }---the most conducive to our setting is as the largest eigenvalue of the covariance matrix.\footnote{
 	This is equivalent to the spectral norm because covariance matrices are always positive semidefinite.
 }
@@ -59,35 +56,34 @@ The benefit of this definition is that the spectral norm is now easily interpret
 We explore this interpretation further in \cref{sec:trace-concentration}.
 
 The Frobenius norm $\norm{\Sigma}_F$ also can be understood in terms of principal components:
-If $\lambda_1, \ldots, \lambda_p$ are the eigenvalues of $\Sigma$ (equivalently, the variances of each of the principal components), the Frobenius norm can be written as $\sqrt{\lambda_1^2 + \cdots + \lambda_p^2}$, the Euclidian norm of the eigenvalue vector.
+If $\lambda_1, \ldots, \lambda_p$ are the eigenvalues of $\Sigma$ (equivalently, the variances of each of the principal components), the Frobenius norm can be written as $\sqrt{\lambda_1^2 + \cdots + \lambda_p^2}$, i.e., the Euclidean norm of the eigenvalue vector.
 In some sense, this is a ``smoother'' summary of $\Sigma$'s eigenvalues than the spectral norm which simply picks out the largest.
 % Instead, the Frobenius norm performs a smooth 
-\inlinetodo{say more here?}
 
 \Cref{fig:gss-example} provides an illustration of each of these norms applied to survey responses on two issues from the General Social Survey \parencite{gss}.
 \cref{fig:norm-comparison} summarizes how each norm relates to the eigenvalues of the covariance matrix.
 We elect to use the spectral norm for the remainder of the paper due to its simple interpretation as the variance of the first principal component, but our qualitative findings hold almost identically for other norm choices.
 
 \begin{figure}
-	\centering
+	% \centering
 	\caption{Comparison of Matrix Norms}
 	\label{fig:norm-comparison}
 	\begin{minipage}{.5\textwidth}
 		\includegraphics[width=\textwidth]
 		{./figures/examples/motivation/norm_illustration.pdf}%
 	\end{minipage}%
-	\hspace{.5in}
+	\hspace{.25in}
 	\begin{tabular}{r l | c | c}
 		\multicolumn{2}{c|}{Norm} & Expression       & $p$                           \\
 		\hline
-		Spectral                  & $\norm \Sigma_2$ & $\max(a, b)$       & $\infty$ \\
-		Nuclear                   & $\norm \Sigma_*$ & $a + b$            & $1$      \\
-		Frobenius                 & $\norm \Sigma_F$ & $\sqrt{a^2 + b^2}$ & $2$      \\
+		Spectral                  & $\norm \Sigma_2$ & $\max(\lambda_1, \lambda_2)$       & $\infty$ \\
+		Frobenius                 & $\norm \Sigma_F$ & $\sqrt{\lambda_1^2 + \lambda_2^2}$ & $2$      \\
+		Nuclear                   & $\norm \Sigma_*$ & $\lambda_1 + \lambda_2$            & $1$      \\
 	\end{tabular}
 	\notes{
-		The left-hand panel shows the ellipse $\set{ \mathbf x \trans \Sigma \mathbf x : \norm{\mathbf x} = 1 }$ induced by the matrix $\Sigma = \operatorname{diag}(2, 1)$.
-		The right-hand panel shows how our three matrix norms can be expressed as $p$-norms of the the matrix's eigenvalue vector, $(a, \, b) \trans$.
-		The spectral norm measures the maximum radius of the data elipsoid, the nulear norm measures the sum of all radii, and the Frobenius norm provides a smooth in-between.
+		The left-hand panel shows the ellipse $\set{ \mathbf x \trans \Sigma \mathbf x : \norm{\mathbf x} = 1 }$ induced by the matrix $\Sigma \in \R^{2 \times 2}$ with eigenvalues $\lambda_1$ and $\lambda_2$.
+		The right-hand panel shows how our three matrix norms can be expressed as $p$-norms of the the matrix's eigenvalue vector, $(\lambda_1, \, \lambda_2) \trans$.
+		The spectral norm measures the maximum radius of the ellipse, the nuclear norm measures the sum of all radii, and the Frobenius norm provides a smooth in-between.
 	}
 \end{figure}
 
@@ -113,14 +109,15 @@ We elect to use the spectral norm for the remainder of the paper due to its simp
 We now we formalize our data setup and estimand, present an estimator, and prove some basic properties about it.
 %
 In particular, we assume that we observe i.i.d. samples $\mathbf x_1, \ldots, \mathbf x_n \sim \mathcal F$ with $\mathbf x_i = \paren{x_{i1}, \ldots, x_{ip}}$, drawn from some underlying distribution of political opinions $\mathcal F$.
-Notably, we make no assumptions about the distribution $\mathcal F$ from which the responses ar drawn except that it has a finite covariance matrix $\Sigma = \Var(x_i)$.
+Each $x_{ij}$ is the opinion of individual $i$ on issue $j$.
+Notably, we make no assumptions about the distribution $\mathcal F$ from which the responses are drawn except that it has a finite covariance matrix $\Sigma = \Var(\mathbf x_i)$.
 Let $\lambda_1, \ldots, \lambda_p$ be the eigenvalues of $\Sigma$ ordered from largest to smallest.
 Then, the estimand of interest is $\rho = \norm{\Sigma}_2 = \lambda_1$, the spectral radius of $\Sigma$.
 
 My estimator is quite straightforward:
 First, I define the sample covariance matrix $\widehat S_n \ceq \frac 1n \sum_i \mathbf x_i \mathbf x_i \trans$ and corresponding sample eigenvalues $\hat \lambda_1, \ldots, \hat \lambda_p$.
 Then, my estimator is simply $\hat \rho = \| \widehat S_n \|_2 = \hat \lambda_1$.
-This turns out to be okay (see \cref{sec:deferred-proofs} for proof):
+This turns out to be okay (proof follows from a straightforward application of the delta method; see \cref{sec:deferred-proofs} for details):
 
 \begin{proposition}
 	The spectral radius of the sample covariance matrix is a consistent and asymptotically-normal estimator of the population spectral radius.
@@ -128,18 +125,18 @@ This turns out to be okay (see \cref{sec:deferred-proofs} for proof):
 
 \subsection{Relationship to Spread in a Latent Ideology Model}
 
-My setup is intentionally model-free, however, it does play nicely with a one-dimensional latent model (for example, a right/left political ideology).
+My setup is intentionally model-free, however, it does play nicely with a one-dimensional latent model (for example, a latent left/right political ideology).
 In particular, the spectral radius picks up increases in spread within the latent distribution.
 The following proposition formalizes that notion:
 
 \begin{proposition}
 	\label{thm:one-dim-implies-multiple-dim}
-	Let $y \sim \mathcal G(a)$ be a person's latent one-dimensional idological position modeled as random variable with finite variance $a \in \R$.
+	Let $y \sim \mathcal G$ be a person's latent one-dimensional ideological position modeled as random variable with positive variance $0 < a = \Var(y) < \infty$.
 	Let $\beta  = \paren{\beta_1, \ldots, \beta_p} \in \R^p$ be the sensitivity of each of issue to this latent ideology such that one's revealed policy positions are
 	\begin{equation}
 		x_{ij} = \beta_j y + e_i;
 		\hspace{1in}
-		\Var(\mathbf e) = \Gamma \in \R^{p \times p}.
+		\Var(e_1, \ldots, e_p) = \Gamma \in \R^{p \times p}.
 	\end{equation}
 	Define $\Sigma = \Var(\mathbf x_i)$ and $r = \norm{\Sigma}_2$.
 	Then the following hold:
