@@ -57,6 +57,7 @@ There are many equivalent ways to define the spectral norm $\norm \Sigma_2$\foot
 	This is equivalent to the spectral norm because covariance matrices are always positive semidefinite, a cone on which the spectral radius and spectral norm coincide.
 }
 The benefit of this definition is that the spectral norm is now easily interpretable as the variance of the responses' first principal component \parencite{anderson-1963-pca-asymptotics, jolliffe-2002-pca} and therefore combines information about the dispersion on individual issues with how much the dispersion projects onto a single dimension.
+Indeed, for a fixed trace, the spectral norm is maximized when the covariance matrix has rank 1, i.e., all variance is explained by a single factor.
 I explore this interpretation further in \cref{sec:trace-concentration}.
 
 The Frobenius norm $\norm{\Sigma}_F$ also can be understood in terms of principal components:

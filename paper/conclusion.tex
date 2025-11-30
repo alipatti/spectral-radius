@@ -3,9 +3,9 @@
 
 In this paper, I developed index of mass ideological polarization based on the joint distribution of people's opinions.
 Concretely, I computed the covariance matrix of responses to various survey questions about views on policy and ideology and took my measure to be the matrix's spectral radius.
-Intuitively, this captures both the degree to which people disagree on individual issues \emph{and} the between-issue correlation of opinions (\cref{sec:theory}).
+This captures both the degree to which people disagree on individual issues \emph{and} the between-issue correlation of opinions (\cref{sec:theory}).
 
-Next, I presented two decompositions that begin to explore not just whether polarization has increased, but \emph{why}.
+Next, I presented two decompositions that explored not just whether polarization has increased, but \emph{why}.
 The first decomposition partitioned changes into a term capturing the degree to which opinions have become increasingly one-dimensional and a term capturing the strength of disagreement in general.
 The second decomposition partitioned changes into within- and between-group components (\cref{sec:decompositions}).
 
@@ -17,7 +17,7 @@ Taken together, this evidence challenges accounts that increasing polarization i
 
 This paper leaves significant room for future work.
 First, there are many topics not covered by the GSS that I would like to explore.
-For example, the GSS does not have any long-running questions about opinions on immigration.
+For example, it asks no long-running questions about immigration.
 Repeating this analysis with other data like the \textcite{anes} could provide additional insight.
 
 Second, the repeated cross-section structure of my data means that the within- versus between-party analysis is effectively conditioning on an endogenous characteristic and may reflect dynamic sorting into groups rather than true changes \parencite{abramowitz-webster-2016-negative-partisanship}.
@@ -32,7 +32,7 @@ Are lifetime politicians becoming more polarized in their views, or is congressi
 
 Fourth, how does ideological polarization relate to public discourse?
 Does the ideological polarization detected by the spectral radius correlate over time with the prevalence of an issue in the media?
-Does highly-polarized discussion on Twitter correlate with the evolving polarization of the broader public?
+Does highly-polarized discussion on Twitter (in the affective sense) correlate with the ideological polarization of the broader public?
 
 Finally, how does ideological polarization vary at a fine geographic level?%
 \footnote{
@@ -43,13 +43,13 @@ Where is there an ideological monoculture?
 What causes this variation?
 Producing such fine estimates would require reckoning with finite-sample upward bias in the naïve spectral radius estimator for extremely small cells, among other statistical issues.%
 \footnote{
-	Putting a prior on the diagonalizing matrix would reduce this bias at the cost of imposing an assumption that people disagree on similar issues across the whole country.
+	Putting a prior on the covariance matrix (or its diagonalizing operator) would reduce this bias at the cost of imposing an assumption that people disagree similarly (or on similar issues) across the whole country.
 	A Markov field would relax that assumption and allow the direction of disagreement to vary smoothly over space.
 }
 Assuming that such problems can be tackled, do we observe the same increase in polarization in the places most exposed to Chinese import competition as found by \textcite{autor-dorn-hanson-majlesi-2020-importing-political-polarization}.
 What about internet activity?
 Previous work on its impact have produced conflicting results \parencite{boxell-gentzkow-2017-internet-polarization, lelkes-sood-iyengar-2017-hostile-audience}.
 What about other shocks?
-Does immigration raise or lower race-related polarization?
+Does exposure to immigration raise or lower race-related polarization among the native-born population?
 
-I hope that this work provides a meaningful contribution to the discourse around political polarization and serves as a useful foundation for future analysis.
+Altogether, I hope that this work provides a meaningful contribution to the discourse around political polarization and serves as a useful foundation for future analysis.
