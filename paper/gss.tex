@@ -2,7 +2,7 @@
 \label{sec:gss}
 
 I now apply these techniques to the General Social Survey---a bi-annual poll of the American public on a broad variety of social, political, and ideological topics administered by NORC at the University of Chicago \parencite{gss}.
-I restrict to questions that have been asked repeatedly over the past three decades and manually categorize questions into one of eight topics: abortion, affirmative action, free speech, government spending, police and justice, race, sex and birth control, and welfare.
+I restrict to questions that have been asked repeatedly over the past three decades and manually categorize questions into eight topics: abortion, affirmative action, free speech, government spending, police and justice, race, sex and birth control, and welfare.
 For each category, \cref{sec:gss-questions} enumerates the selected survey questions, their text, and the possible responses.
 
 To encode survey responses as numeric values to which I can apply my polarization measure, I map the minimum response to -1, the maximum response to +1, and the remaining responses evenly-spaced between those two values.
@@ -23,13 +23,6 @@ I use the provided \texttt{WTSSPS} survey weight.
 
 \cref{fig:gss-time-series} shows how polarization---as measured by the spectral radius---evolves over time for the eight previously-mentioned topics.
 %
-Polarization on sex and birth control, affirmative action, police, and welfare rise steadily throughout our entire period.
-%
-Polarization surrounding government spending also rises throughout, but exhibits more volatility.
-In particular, there are large spikes during the mid 1990s,\footnote{
-	This spike is entirely due to polarization amongst Republicans; see \cref{fig:gss-within-party}.
-} the 2008 financial crisis, and the COVID-19 pandemic.
-
 I find steady increases in polarization on all topics except free speech and race.
 %
 Free speech issues exhibit steady decline in polarization throughout the 1990s and 2000s before spiking in the wake of the 2008 financial crisis.
@@ -37,58 +30,8 @@ Polarization then remains high throughout the 2010s before plummeting again duri
 %
 On race issues, polarization remains flat throughout our entire period with the exception of an enormous spike in polarization during the early 2020s.
 %
-Additionally, spending polarization exhibits spikes during the mid 1990s, the 2008 financial crisis, and the COVID-19 pandemic.
+In addition to the general upward trend, spending polarization exhibits spikes during the mid 1990s, the 2008 financial crisis, and the COVID-19 pandemic.
 
-\subsection{Dimensional Collapse or Increase in General Disagreement?}
-\label{sec:trace-concentration-decomp}
-
-In \cref{sec:trace-concentration}, I demonstrated a decomposition of the spectral radius into the trace of the covariance matrix (summarizing the total disagreement, irrespective correctional structure) times the share of variance explained by the first principal component (summarizing the degree to which opinions are correlated across issues).
-I now explore which of these two components is driving the observed trends.
-Are increases in polarization stemming from people becoming increasingly one dimensional in their opinions, or are people simply disagreeing more in general?
-
-To determine the proportion of change attributable to dimensional collapse, I fix the total variance component of \cref{eq:percent-change-trace-concentration} to its initial value and let only the spectral concentration evolve over time. To see the change attributable to increase in total variance, I fix the spectral concentration to its initial value and let only the total variance evolve. These two counterfactuals multiply together to equal the true observed change. \cref{fig:gss-spectral-concentration} illustrates the results.
-
-In general, most trends are driven by increases in total variance with spectral concentration even decreasing over time in some cases (e.g. speech, police).
-The most obvious exceptions to this trend are (1) race issues, where increases in spectral concentration explain the entire spike in the early 2020s, and (2) abortion issues, which exhibit a ``U'' shape with total variance increasing from 1990 until around 2010 before decreasing sharply from 2010 until the present.
-
-\subsection{Within or Between Political Parties?}
-\label{sec:party-decomp}
-
-\Cref{sec:between-v-within} developed a way to decompose polarization into a component stemming from within-group disagreement and a component stemming from between-group disagreement.
-This subsection applies that technique to the GSS.
-
-As a first step, I investigate levels and trends of polarization \emph{within} political party.
-\cref{fig:gss-within-party} shows these results.
-I counterintuitively find that within-party polarization is typically comparable to---and in some cases higher than---polarization in the general population.
-Democrats are generally more polarized on police, race and affirmative action and are united on welfare and spending issues.
-Republicans are polarized on spending and sex and united on policing, race, and affirmative action.
-%
-Interestingly, this exercise also reveals how both the bump in spending polarization during the 1990s and the spike in police-related polarization post George Floyd are driven by disagreement \emph{within} the Republican party.%
-\footnote{
-	Party is obviously endogenous to one's political and ideological beliefs, so results from this section should all be taken with a grain of salt.
-	I also present results by self-reported ideology (liberal v. conservative) in \cref{sec:other-decompositions}.
-}
-
-I then leverage the framework of \cref{sec:between-v-within} to decompose changes in polarization into those attributable to within- and between-party trends.
-\Cref{fig:gss-within-v-between} shows these results.
-I find that the breakdown varies across topic:
-Trends in affirmative action, free speech, police polarization are driven entirely by within-party changes.
-Trends in polarization on race and welfare issues are driven entirely by between-party changes.
-Interestingly, spending polarization exhibits a ``switch'': Volatility in the 1990s and in the wake of the 2008 financial crisis stemmed from within-party disagreement, but the COVID-19 spending polarization bump was driven by between-party differences.
-This is in line with a more broad pattern of an uptick in between-party polarization in the last five years.
-
-\subsection{What About Gender? Age? Race? Religion?}
-\label{sec:gss-other-groups}
-
-If the divergence of political parties is not entirely to blame for increasing polarization, are there other demographic characteristics that explain the increases?
-%
-For example, is increasing polarization on race issues being driven by divergence of the opinions of white and black people?
-Are increases in abortion polarization being driven by a divergence of men's and women's views?
-It appears that in the vast majority of cases, the answer is no---most trends stem from within-group changes, not divergence of opinions across groups.
-Two notable exceptions are that education and religion explain a large chunk of the increase in abortion polarization.
-See \cref{sec:other-decompositions} for analogues to \cref{fig:gss-within-party,fig:gss-within-v-between}, replacing political party with race, sex, religion, education, geography, age, and other demographics.
-
-% \begin{landscape}
 \begin{figure}
 	\centering
 	\caption{Polarization Over Time by Issue Category}
@@ -100,6 +43,54 @@ See \cref{sec:other-decompositions} for analogues to \cref{fig:gss-within-party,
 	Bootstrap standard errors leveraging asymptotic normality are forthcoming in a future version of this working paper.
 }
 \end{figure}
+
+\subsection{Dimensional Collapse or Increase in General Disagreement?}
+\label{sec:trace-concentration-decomp}
+
+In \cref{sec:trace-concentration}, I demonstrated a decomposition of the spectral radius into the trace of the covariance matrix (summarizing total disagreement and ignoring correctional structure) times the share of variance explained by the first principal component (summarizing the degree to which opinions are correlated across issues).
+I now explore which of these two components is driving the observed trends.
+Are increases in polarization stemming from people becoming increasingly one dimensional in their opinions, or are people simply disagreeing more in general?
+
+To determine the proportion of change attributable to dimensional collapse, I fix the total variance component of \cref{eq:percent-change-trace-concentration} to its initial value and let only the spectral concentration evolve over time. To see the change attributable to increase in total variance, I fix the spectral concentration to its initial value and let only the total variance evolve. These two counterfactuals multiply together to equal the true observed change. \cref{fig:gss-spectral-concentration} illustrates the results.
+
+In general, I find that most trends are driven by increases in total variance with spectral concentration sometimes even decreasing over time (e.g. speech, police).
+The most obvious exceptions to this trend are (1) race issues, where increases in spectral concentration explain the entire spike in the early 2020s, and (2) abortion issues, which exhibit a ``U'' shape with total variance increasing from 1990 until around 2010 before decreasing sharply from 2010 until the present.
+
+\subsection{Within or Between Political Parties?}
+\label{sec:party-decomp}
+
+\Cref{sec:between-v-within} developed a way to decompose polarization into portions attributable to within- and between-group disagreement.
+I now apply this technique to the GSS.
+
+As a first step, \cref{fig:gss-within-party} shows the levels and trends of polarization \emph{within} each political party.
+I counterintuitively find that within-party polarization is typically comparable to---and in some cases higher than---polarization in the general population.
+Democrats are typically more polarized on police, race and affirmative action and are united on welfare and spending issues.
+Republicans are polarized on spending and sex and united on policing, race, and affirmative action.%
+%
+% Interestingly, this exercise also reveals how both the bump in spending polarization during the 1990s and the spike in police-related polarization post George Floyd are driven by disagreement \emph{within} the Republican party.%
+\footnote{
+	Party is endogenous to one's political and ideological beliefs, so results from this section include dynamic sorting of people into party.
+	% This is unavoidable with the repeated cross-section nature of my data set.
+	I also present results by self-reported ideology (liberal v. conservative) in \cref{sec:other-decompositions}.
+}
+
+I then decompose changes in polarization into those attributable to within- and between-party trends;
+\cref{fig:gss-within-v-between} shows these results.
+I find that the breakdown varies across topic:
+Trends in affirmative action, free speech, police polarization are driven entirely by within-party changes.
+Trends in polarization on race and welfare issues are driven entirely by between-party changes.
+Interestingly, spending polarization exhibits a ``switch'': Volatility in the 1990s and in the wake of the 2008 financial crisis stemmed from within-party disagreement, but the COVID-19 spending polarization bump was driven by between-party differences.
+
+\subsection{What About Gender? Age? Race? Religion?}
+\label{sec:gss-other-groups}
+
+If the divergence of political parties is not entirely to blame for increasing polarization, are there other demographic characteristics that explain the increases?
+%
+For example, is increasing polarization on race issues being driven by divergence of the opinions of white and black people?
+Are increases in abortion polarization being driven by a divergence of men's and women's views?
+It appears that in the vast majority of cases, the answer is no---most trends stem from within-group changes, not divergence of opinions across groups.
+Two notable exceptions are that education and religion explain a large chunk of the increase in abortion polarization.
+See \cref{sec:other-decompositions} for analogues to \cref{fig:gss-within-party,fig:gss-within-v-between}, replacing political party with race, sex, religion, education, geography, age, and other demographics.
 
 \begin{figure}
 	\centering
@@ -142,4 +133,3 @@ See \cref{sec:other-decompositions} for analogues to \cref{fig:gss-within-party,
 		% \inlinetodo{add initial decompositions to the facet strip}
 	}
 \end{figure}
-% \end{landscape}

@@ -88,7 +88,7 @@ Then, the multidimensional analogue to he law of total variance \parencite[e.g.]
 where $\mu_g = \E{\mathbf x_{i} \given z_i = g}$ are the average opinions of group $g$, $\Sigma_g = \Var(\mathbf x_i \given z_i = g)$ is the group's covariance matrix, and $\mu = \E{\mathbf x_i}$ is the unconditional mean.
 %
 Unfortunately, the spectral norm is not linear, so this does not immediately yield a within- and between-group decomposition of $\norm \Sigma _2$.
-Fortunately, it is \emph{sub-linear}.\footnote{Meaning $\norm{A + B}_2 \leq \norm A_2 + \norm B_2$, i.e., it satisfies the triangle inequality.}.
+% Fortunately, it is \emph{sub-linear}.\footnote{Meaning $\norm{A + B}_2 \leq \norm A_2 + \norm B_2$, i.e., it satisfies the triangle inequality.}.
 
 Letting $\Sigma_w$ and $\Sigma_b$ denote the within- and between-group components of the decomposition in \cref{eq:within-between-decomposition-of-sigma}, the triangle inequality lets us write $\norm{\Sigma}_2$ as the sum of $\norm{\Sigma_w}_2$ and $\norm{\Sigma_b}_2$, less an additional slack term $s_b \geq 0$ that captures the tightness of the triangle inequality for this particular pair of matrices:
 \begin{equation}

@@ -1,25 +1,26 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-In this paper, I developed measure of mass ideological polarization based on the joint distribution of people's opinions.
-Concretely, I compute the covariance matrix of responses to various survey questions about views on policy and ideology, and then use the matrix's spectral radius as a measure of polarization.
+In this paper, I developed index of mass ideological polarization based on the joint distribution of people's opinions.
+Concretely, I compute the covariance matrix of responses to various survey questions about views on policy and ideology and take my measure to be the matrix's spectral radius.
 Intuitively, this captures both the degree to which people disagree on individual issues \emph{and} the between-issue correlation of opinions (\cref{sec:theory}).
 
 Next, I presented two decompositions that begin to explore not just whether polarization has increased, but \emph{why}.
-The first decomposition partitions polarization into a term capturing the degree to which opinions project onto a single ``us–vs–them'' axis and a term capturing the strength of disagreement in general. The second decomposition partitions changes into within- and between-group components (\cref{sec:decompositions}).
+The first decomposition partitioned changes into a term capturing the degree to which opinions have become increasingly one-dimensional and a term capturing the strength of disagreement in general.
+The second decomposition partitioned changes into within- and between-group components (\cref{sec:decompositions}).
 
 Finally, I applied these methods to three decades of survey data, producing an evolving portrait of ideological polarization in the American public (\cref{sec:gss}).
 I found that polarization has increased on most topics since the early 1990s (\cref{sec:overall-trends}), driven mostly by increases in general disagreement rather than increased cross-issue opinion correlation (\cref{sec:trace-concentration-decomp}) and by increases in disagreement within groups rather than between them (\cref{sec:party-decomp,sec:gss-other-groups}).
-Taken together, this evidence challenges accounts that increasing polarization is due to demographic sorting alone.
+Taken together, this evidence challenges accounts that increasing polarization is due to the ideological shift of entire demographic groups.
 
 \subsection{Limitation vs and Future Work}
 
 This paper leaves significant room for future work.
-First, there are many topics not covered by the GSS.
-For example, it does not ask any long-running questions about views on immigration---one of the most polarizing topics in contemporary discourse.
+First, there are many topics not covered by the GSS that I would like to explore.
+For example, the GSS does not have any long-running questions about opinions on immigration.
 Repeating this analysis with other data like the \textcite{anes} could provide additional insight.
 
-Second, the repeated cross-section structure of my data means that the within- versus between-party analysis is effectively conditioning on an endogenous characteristic and may reflect dynamic sorting into groups rather than true changes \textcite{abramowitz-webster-2016-negative-partisanship}.
+Second, the repeated cross-section structure of my data means that the within- versus between-party analysis is effectively conditioning on an endogenous characteristic and may reflect dynamic sorting into groups rather than true changes \parencite{abramowitz-webster-2016-negative-partisanship}.
 Repeating the analysis with a panel data set would allow me to fix political party (or any other covariate) at some initial $t=0$, and then allow opinions to evolve within those static groups.%
 \footnote{The GSS and Pew Research do provide panel survey data sets, although their scope is fairly small and both panels cover a far shorter of a time period than the corresponding repeated cross-section.}
 
@@ -29,10 +30,9 @@ Similarly, do polarized leaders produce polarized constituents?
 One could also extend the decompositions of \cref{sec:decompositions} to attribute trends in congressional ideological polarization to the turnover of elected officials versus the changing opinions of incumbents.
 Are lifetime politicians becoming more polarized in their views, or is congressional polarization a symptom of new representatives with strong opinions?
 
-Fourth, one could investigate the effects of some exogenous shock on polarization.
-For example, \textcite{autor-dorn-hanson-majlesi-2020-importing-political-polarization} find that increasing competition from Chinese imports increased polarization in exposed areas---as measured by survey responses, electoral turnout and campaign contributions.
-Other studies find conflicting evidence on the impact of the internet on affective polarization \parencite{boxell-gentzkow-2017-internet-polarization, lelkes-sood-iyengar-2017-hostile-audience}.
-How do these or other shocks materialize under my polarization measure?
+Fourth, how does ideological polarization relate to public discourse?
+Does the ideological polarization detected by the spectral radius correlate over time with the prevalence of an issue in the media?
+Does highly-polarized discussion on Twitter correlate with the evolving polarization of the broader public?
 
 Finally, how does ideological polarization vary at a fine geographic level?%
 \footnote{
@@ -40,11 +40,16 @@ Finally, how does ideological polarization vary at a fine geographic level?%
 }
 What are the hot spots for disagreement?
 Where is there an ideological monoculture?
-Producing such fine estimates would face many statistical issues, for example, one can no longer ignore finite-sample upward bias in the naïve spectral radius estimator for extremely small cells.
-An (empirical) Bayesian approach may provide some help, for example by placing a prior on the spectral radii or on the unitary operator used to diagonalize each local covariance matrix.
-A Markov random field on the radii or the operator could have similar calming effects.%
+What causes this variation?
+Producing such fine estimates would require reckoning with finite-sample upward bias in the naïve spectral radius estimator for extremely small cells, among other statistical issues.%
 \footnote{
-	A prior would effectively impose an assumption that people disagree on similar issues across the whole country.
+	Putting a prior on the diagonalizing matrix would reduce this bias (and the variance) at the cost of imposing an assumption that people disagree on similar issues across the whole country.
 	A Markov field would relax that assumption and allow the direction of disagreement to vary smoothly over space.
 }
+Assuming that such problems can be tackled, do we observe the same increase in polarization in the places most exposed to Chinese import competition as found by \textcite{autor-dorn-hanson-majlesi-2020-importing-political-polarization}.
+What about internet activity?
+Previous work on its impact have produced conflicting results \parencite{boxell-gentzkow-2017-internet-polarization, lelkes-sood-iyengar-2017-hostile-audience}.
+What about other shocks?
+Does immigration raise or lower race-related polarization?
 
+I hope that this work provides a meaningful contribution to the discourse around political polarization and serves as a useful foundation for future analysis.

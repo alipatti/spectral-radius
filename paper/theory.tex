@@ -13,7 +13,11 @@ For example, a question asking respondents to rate their support of slavery woul
 Polarization requires disagreement, i.e., spread in the distribution of responses \parencite{abramowitz-saunders-2008-polarization-myth}.
 
 The simplest measure of a distribution's spread (and the one I proceed with for the remainder of this paper) is its variance.
-On distributions with finite and bounded support---i.e., most survey questions---this closely matches one's intuition about what constitutes a highly-polarized distribution.
+On distributions with finite and bounded support---i.e., most survey questions---this closely matches one's intuition about what constitutes a highly-polarized distribution.\footnote{
+	Often, polarization on a particular issue is understood as ``tail heaviness'' or the presence of a ``U'' shaped density.
+	Because the distributions we're concerned about are bounded, variance captures this notion:
+	As spread increases, the density has nowhere to go and must accumulate at the extremes.
+}
 For example, on binary a binary yes-or-no question, variance is maximized when responses are evenly split between the two options.
 For a question asking one to numerically rank their agreement or disagreement with a particular statement, variance is maximized when responses are evenly split between the two extremes.
 More generally, for any finite and discrete $A \subseteq \R$, the random variable with support over $A$ that has the highest variance has mass
@@ -36,8 +40,8 @@ In reality people hold opinions on a wide variety of issues, even within a singl
 For example, regarding abortion, people hold separate opinions on whether abortion should be legal unilaterally, in the case of rape, in the case of incest, past the first trimester, or if the mother's health is at risk.
 A good measure of polarization on abortion issues should take into account the spread of public opinion on all these scenarios.
 
-A complete but high dimensional measure would be the distribution's covariance matrix $\Sigma$, however, this quickly becomes difficult to interpret as the number of issues grows.
-A first attempt at an interpretable scalar summary measure is to simply take the sum of the variances on each individual issue (i.e., the covariance matrix's trace).
+A complete but high dimensional measure would be the distribution's covariance matrix $\Sigma$, however, this very quickly becomes uninterpretable.
+A first attempt at a low-dimensional summary measure is to simply take the sum of the variances on each individual issue (i.e., the covariance matrix's trace).
 This is a good start, but it fails to take into account any of the correlational structure between responses.
 Indeed, much of the political science literature notes that a key feature of a ideologically-polarized society is a high-degree of correlation between opinions on separate issues, or in the words of \textcite{drutman-2020-doom-loop}, a society that is  ``locked in a zero-sum struggle along a single `us-vs-them' dimension.''
 
@@ -50,7 +54,7 @@ We've already seen the trace norm's shortcomings, so I focus on two other option
 There are many equivalent ways to define the spectral norm $\norm \Sigma_2$\footnote{
 	For example: as the largest singular value; as the $\mathcal L_\infty$ norm of the singular values; as the $\mathcal L_2$ operator norm.
 }---the most conducive to our setting is as the largest eigenvalue of the covariance matrix.\footnote{
-	This is equivalent to the spectral norm because covariance matrices are always positive semidefinite.
+	This is equivalent to the spectral norm because covariance matrices are always positive semidefinite, a cone on which the spectral radius and spectral norm coincide.
 }
 The benefit of this definition is that the spectral norm is now easily interpretable as the variance of the responses' first principal component \parencite{anderson-1963-pca-asymptotics, jolliffe-2002-pca} and therefore combines information about the dispersion on individual issues with how much the dispersion projects onto a single dimension.
 I explore this interpretation further in \cref{sec:trace-concentration}.
@@ -60,9 +64,8 @@ If $\lambda_1, \ldots, \lambda_p$ are the eigenvalues of $\Sigma$ (equivalently,
 In some sense, this is a ``smoother'' summary of $\Sigma$'s eigenvalues than the spectral norm which simply picks out the largest.
 % Instead, the Frobenius norm performs a smooth 
 
-\Cref{fig:gss-example} provides an illustration of each of these norms applied to survey responses on two issues from the General Social Survey \parencite{gss}.
-\cref{fig:norm-comparison} summarizes how each norm relates to the eigenvalues of the covariance matrix.
-I elect to use the spectral norm for the remainder of the paper due to its simple interpretation as the variance of the first principal component, but our qualitative findings hold almost identically for other norm choices.
+\cref{fig:norm-comparison} summarizes how each norm relates to the eigenvalues of the covariance matrix, and \cref{fig:gss-example} provides an illustration of each of these norms applied to survey responses on two issues from the General Social Survey \parencite{gss}.
+I elect to use the spectral norm for the remainder of the paper due to its simple interpretation as the variance of the first principal component, but the overall trends qualitatively hold for other norm choices.
 
 \begin{figure}
 	% \centering
@@ -74,7 +77,7 @@ I elect to use the spectral norm for the remainder of the paper due to its simpl
 	\end{minipage}%
 	\hspace{.25in}
 	\begin{tabular}{r l | c | c}
-		\multicolumn{2}{c|}{Norm} & Expression       & $p$                           \\
+		\multicolumn{2}{c|}{Norm} & Expression       & $p$                                           \\
 		\hline
 		Spectral                  & $\norm \Sigma_2$ & $\max(\lambda_1, \lambda_2)$       & $\infty$ \\
 		Frobenius                 & $\norm \Sigma_F$ & $\sqrt{\lambda_1^2 + \lambda_2^2}$ & $2$      \\
