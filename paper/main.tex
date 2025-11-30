@@ -1,7 +1,6 @@
-\documentclass[bib,theorems]{ali-paper}
+\documentclass[bib,theorems,pgf]{./paper/ali-paper}
 
-% TODO: use https://www.refine.ink on late-stage draft
-
+\RequirePackage{./paper/ali-macros}
 \addbibresource{./paper/refs.bib}
 
 \title{Public Ideological Polarization}
@@ -12,15 +11,18 @@
 }
 \date{November 2025}
 
-\pagestyle{fancy}
-\fancyhead{}
-\chead{
-	\footnotesize
-	\color{red!60!white}
-	This pdf was compiled on \today. \\
-	Please see \href{https://github.com/alipatti/spectral-radius}{\tt github.com/alipatti/spectral-radius} for the complete and most recent version of this working paper.
-}
-\renewcommand{\headrulewidth}{0pt}
+% include header if compiling locally, but not on arxiv version
+\IfFileExists{.texlabroot}{
+	\pagestyle{fancy}
+	\fancyhead{}
+	\chead{
+		\footnotesize
+		\color{red!60!white}
+		This pdf was compiled on \today. \\
+		Please see \href{https://github.com/alipatti/spectral-radius}{\tt github.com/alipatti/spectral-radius} for the complete and most recent version of this working paper.
+	}
+	\renewcommand{\headrulewidth}{0pt}
+}{}
 
 % spacing
 \linespread{1.5}
