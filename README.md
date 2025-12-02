@@ -4,8 +4,8 @@ See [here](https://drive.google.com/file/d/1nOo32l3yCJPamgxc3_bWO-pnsETS3uoh/vie
 
 ## Replication
 
-To download the required data and produce everything necessary to compile the working paper, simply run this repository as a python package.
-For example:
+To produce everything necessary to compile the working paper, simply run this repository as a python package.
+(This will download the required data and create all figures and appendicies.)
 
 ```python
 git clone https://github.com/alipatti/spectral-radius &&
