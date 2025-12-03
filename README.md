@@ -4,7 +4,8 @@ See [here](https://drive.google.com/file/d/1nOo32l3yCJPamgxc3_bWO-pnsETS3uoh/vie
 
 ## Replication
 
-To replicate the figures, simply run this repository as a python package. For example:
+To produce everything necessary to compile the working paper, simply run this repository as a python package.
+(This will download the required data and create all figures and appendicies.)
 
 ```python
 git clone https://github.com/alipatti/spectral-radius &&
@@ -12,8 +13,7 @@ git clone https://github.com/alipatti/spectral-radius &&
     pip install . &&
     python -m spectral_radius
 ```
-
-This will download the required data and generate everything necessary to compile the pdf:
+Then compile the pdf:
 
 ```python
 latexmk paper/main -pv
