@@ -1,8 +1,8 @@
 from functools import cache
+from itertools import combinations_with_replacement
 from typing import Collection, Mapping
 import polars as pl
 import numpy as np
-from polars_utils.covariance import covariance_matrix
 import plotnine as pn
 from plotnine_theme import theme_ali
 from polars_utils.stats import mean
@@ -11,7 +11,8 @@ from tqdm import tqdm
 
 from spectral_radius.constants import FIGURES, START_YEAR
 from spectral_radius.gss import get_gss
-from spectral_radius.gss import OPINION_CATEGORIES, DEMOGRAPHIC_VARIABLES
+from spectral_radius.gss import OPINION_CATEGORIES
+from spectral_radius.gss.demographic_variables import DEMOGRAPHIC_VARIABLES
 from spectral_radius.plot_helpers import (
     COLOR_SCALE,
     CATEGORY_WRAP,
@@ -21,18 +22,26 @@ from spectral_radius.plot_helpers import (
 
 
 def measures(
-    group: pl.DataFrame,
+    df: pl.DataFrame,
     *,
     w="w",
     columns: Collection[str],
 ) -> pl.DataFrame:
-    # PERF: speed up this computation (very slow rn)
-    sigma = covariance_matrix(
-        group,
-        w=w,
-        columns=columns,
-        nulls="pairwise_complete",
-    )
+    # demean
+    df = df.with_columns(pl.col(columns).pipe(lambda x: x - x.mean()))
+
+    n = len(columns)
+    sigma = np.empty((n, n))
+    weights = df[w]
+
+    for (i, a), (j, b) in combinations_with_replacement(enumerate(columns), 2):
+        product = df[b] * df[a] * weights
+
+        total_weight = weights.filter(product.is_not_null()).sum()
+        covariance = product.sum() / total_weight if total_weight > 0 else 0
+
+        sigma[i, j] = covariance
+        sigma[j, i] = covariance
 
     lambdas = np.linalg.eigh(sigma).eigenvalues  # eigenvalues
 
@@ -48,7 +57,7 @@ def measures(
         # frobenius norm
         frob=np.linalg.norm(lambdas, ord=2),
         # total weight of group
-        w=group.select(pl.col(w).sum()).item(),
+        w=df.select(pl.col(w).sum()).item(),
         # covariance matrix itself
         # sigma=sigma,
     )
@@ -267,9 +276,9 @@ def group_decomp_figure(by: str = "race") -> pn.ggplot:
 
 
 def main():
-    # cuts = DEMOGRAPHIC_VARIABLES.keys()
+    cuts = DEMOGRAPHIC_VARIABLES.keys()
     cuts = ("political_party",)
-    # cuts = ()
+    cuts = ()
 
     all_figures = (
         {
