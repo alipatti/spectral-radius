@@ -1,6 +1,5 @@
 from itertools import product
 from pathlib import Path
-import string
 
 
 import polars as pl

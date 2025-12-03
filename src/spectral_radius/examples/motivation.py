@@ -1,27 +1,28 @@
-from plotnine_theme import margin, theme_ali
+from plotnine_theme import margin
 import polars as pl
 import plotnine as pn
 from polars_utils.covariance import covariance_matrix
 from polars_utils.stats import mean
 import numpy as np
 
-from spectral_radius.gss import load_gss_data
+from spectral_radius.gss import get_gss
 from spectral_radius.plot_helpers import COLORS, savefig
-from spectral_radius.variable_coding import scale_to_pm_1
 from spectral_radius.examples.helpers import OUTPUT, create_ellipses_df
 
 
 def gss_norm_example():
-    gss = load_gss_data()[0]
-
     x, y = "helpsick", "helppoor"
     years = 2000, 2012, 2024
 
-    df = gss.select(
-        "year",
-        pl.col(x, y).pipe(scale_to_pm_1).neg(),
-        pl.col("wtssps").alias("w"),
-    ).filter(pl.col("year").is_in(years))
+    df = (
+        get_gss()
+        .select(
+            "year",
+            pl.col(x, y).neg(),
+            "w",
+        )
+        .filter(pl.col("year").is_in(years))
+    )
 
     mus_and_sigmas = {
         ks[0]: (

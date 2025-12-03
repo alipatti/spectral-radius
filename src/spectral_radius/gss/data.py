@@ -13,6 +13,7 @@ import pickle
 from rich import print
 import inflection
 
+
 def load_gss_data(
     clean_data_dir=Path("data/gss"),
     use_cache=True,

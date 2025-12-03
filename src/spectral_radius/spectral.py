@@ -1,5 +1,4 @@
 from functools import cache
-from pathlib import Path
 from typing import Collection, Mapping
 import polars as pl
 import numpy as np
@@ -10,22 +9,15 @@ from polars_utils.stats import mean
 import inflection
 from tqdm import tqdm
 
-from spectral_radius.gss import load_gss_data
-from spectral_radius.gss import (
-    OPINION_CATEGORIES,
-    OPINION_VARIABLES,
-    DEMOGRAPHIC_VARIABLES,
-)
-from spectral_radius.variable_coding import scale_to_pm_1
+from spectral_radius.constants import FIGURES, START_YEAR
+from spectral_radius.gss import get_gss
+from spectral_radius.gss import OPINION_CATEGORIES, DEMOGRAPHIC_VARIABLES
 from spectral_radius.plot_helpers import (
     COLOR_SCALE,
     CATEGORY_WRAP,
     PERCENT_CHANGE_SCALE,
     savefig,
 )
-
-START_YEAR = 1990
-FIGURES = Path("./figures/gss")
 
 
 def measures(
@@ -274,26 +266,9 @@ def group_decomp_figure(by: str = "race") -> pn.ggplot:
     return decomposition
 
 
-@cache
-def get_gss():
-    return (
-        load_gss_data(use_cache=True)[0]
-        .select(
-            "year",
-            # demographic variables
-            *(v.alias(k) for k, v in DEMOGRAPHIC_VARIABLES.items()),
-            # weight
-            pl.col("wtssps").alias("w"),
-            # analysis variables
-            pl.col(OPINION_VARIABLES).pipe(scale_to_pm_1),
-        )
-        .filter(pl.col("year") >= START_YEAR)
-    )
-
-
 def main():
-    cuts = DEMOGRAPHIC_VARIABLES.keys()
-    # cuts = ("political_party",)
+    # cuts = DEMOGRAPHIC_VARIABLES.keys()
+    cuts = ("political_party",)
     # cuts = ()
 
     all_figures = (
@@ -306,7 +281,7 @@ def main():
     )
 
     for path_root, fig in all_figures.items():
-        savefig(fig, FIGURES / path_root, size=(8.5 - 2, 11 - 3.5))
+        savefig(fig, FIGURES / "gss" / path_root, size=(8.5 - 2, 11 - 3.5))
 
 
 if __name__ == "__main__":

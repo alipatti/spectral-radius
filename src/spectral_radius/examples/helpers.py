@@ -6,10 +6,12 @@ import polars as pl
 from numpy._typing import _ArrayLikeFloat_co
 import plotnine as pn
 
+from spectral_radius.constants import FIGURES
+
 type MuAndSigma = tuple[_ArrayLikeFloat_co, _ArrayLikeFloat_co]
 type MuSigmaList = Sequence[MuAndSigma] | Mapping[str, MuAndSigma]
 
-OUTPUT = Path("./figures/examples/")
+OUTPUT = FIGURES / "examples/"
 
 RNG = np.random.default_rng(seed=1281)
 
