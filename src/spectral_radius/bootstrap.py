@@ -5,20 +5,20 @@ import polars as pl
 import scipy.linalg
 import numpy as np
 import plotnine as pn
-from scipy.stats import norm, normaltest, dirichlet, multinomial
+from scipy.stats import norm, normaltest, multinomial
 from tqdm import tqdm
 
 from spectral_radius.gss.opinion_variables import OPINION_CATEGORIES
 from spectral_radius.plot_helpers import COLOR_SCALE, COLORS
 from spectral_radius.spectral import get_gss, measures
 
-ResamplingMethod = Literal["brr", "bootstrap", "bayesian"]
+ResamplingMethod = Literal["brr", "bootstrap"]
 
 
 def main(
     years=range(2000, 2011, 4),
     categories=("Welfare",),
-    methods: list[ResamplingMethod] = ["brr", "bayesian", "bootstrap"],
+    methods: list[ResamplingMethod] = ["brr", "bootstrap"],
 ):
     resamples = pl.concat(
         get_gss()
@@ -108,10 +108,8 @@ def replicate_measures(
 ):
     if method == "brr":
         weights = brr_weights
-    elif method == "bayesian":
-        weights = lambda x: bootstrap_weights(x, bayesian=True)  # noqa
     elif method == "bootstrap":
-        weights = lambda x: bootstrap_weights(x, bayesian=False)  # noqa
+        weights = bootstrap_weights
     else:
         raise ValueError
 
@@ -128,22 +126,13 @@ def replicate_measures(
 def bootstrap_weights(
     df: pl.DataFrame,
     *,
-    bayesian=True,
-    dirichlet_alpha=1,
     weight_col=pl.col("w"),
     n_iters=150,
 ) -> Iterator[pl.Expr]:
-    """https://matteocourthoud.github.io/post/bayes_boot/"""
 
     np.random.seed(1280)  # scipy uses numpy for rng
 
     spine = df.select("vstrat", "vpsu").unique()
-
-    within_strata_weight_fn = (  # noqa
-        (lambda ones: dirichlet.rvs(ones.to_numpy() * dirichlet_alpha)[0] * ones.len())
-        if bayesian
-        else (lambda ones: multinomial.rvs(ones.len(), ones.to_numpy() / ones.len()))
-    )
 
     for _ in tqdm(range(n_iters)):
         # want mapping vstrat, vpsu -> weight
@@ -151,7 +140,7 @@ def bootstrap_weights(
         weights = spine.with_columns(
             pl.repeat(1, pl.len())
             .map_batches(
-                within_strata_weight_fn,
+                lambda ones: multinomial.rvs(ones.len(), ones.to_numpy() / ones.len()),
                 return_dtype=pl.Float64,
             )
             .over("vstrat")
