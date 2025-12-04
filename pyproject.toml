@@ -12,6 +12,7 @@ dependencies = [
     "plotnine>=0.14.5",
     "plotnine-theme",
     "polars>=1.30.0",
+    "polars-rng>=0.1.0",
     "polars-utils>=0.1.13",
     "pyarrow>=20.0.0",
     "pyperclip>=1.11.0",
@@ -19,6 +20,7 @@ dependencies = [
     "requests>=2.32.3",
     "rich>=14.0.0",
     "scipy>=1.15.3",
+    "statsmodels>=0.14.5",
     "tqdm>=4.67.1",
 ]
 

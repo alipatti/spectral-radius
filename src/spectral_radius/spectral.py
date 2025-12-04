@@ -24,7 +24,7 @@ from spectral_radius.plot_helpers import (
 def measures(
     df: pl.DataFrame,
     *,
-    w="w",
+    w: str="w",
     columns: Collection[str],
 ) -> pl.DataFrame:
     # demean
@@ -34,6 +34,7 @@ def measures(
     sigma = np.empty((n, n))
     weights = df[w]
 
+    # FIX: should this covariance matrix computation respect the sampling design?
     for (i, a), (j, b) in combinations_with_replacement(enumerate(columns), 2):
         product = df[b] * df[a] * weights
 
@@ -52,12 +53,10 @@ def measures(
         trace=lambdas.sum(),
         # proportion exp. by first pc
         spectral_concentration=lambdas.max() / lambdas.sum(),
-        # spectral gap
-        spectral_gap=lambdas[-1] - lambdas[-2],
         # frobenius norm
         frob=np.linalg.norm(lambdas, ord=2),
         # total weight of group
-        w=df.select(pl.col(w).sum()).item(),
+        w=weights.sum(),
         # covariance matrix itself
         # sigma=sigma,
     )

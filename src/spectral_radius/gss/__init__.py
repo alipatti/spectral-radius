@@ -11,6 +11,7 @@ from spectral_radius.constants import START_YEAR
 
 @cache
 def get_gss(*, weight="wtssps", encoding_function=scale_to_pm_1):
+    sampling_vars = ("vstrat", "vpsu")
     return (
         load_gss_data(use_cache=True)[0]
         .select(
@@ -21,6 +22,7 @@ def get_gss(*, weight="wtssps", encoding_function=scale_to_pm_1):
             pl.col(weight).alias("w"),
             # analysis variables
             pl.col(OPINION_VARIABLES).pipe(encoding_function),
+            *sampling_vars,
         )
         .filter(pl.col("year") >= START_YEAR)
     )
