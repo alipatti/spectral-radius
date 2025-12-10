@@ -2,6 +2,8 @@
 
 See [here](https://drive.google.com/file/d/1nOo32l3yCJPamgxc3_bWO-pnsETS3uoh/view?usp=sharing) for the most recent working paper pdf.
 
+See [here](https://arxiv.org/abs/2512.00955) for arXiv preprint.
+
 ## Replication
 
 To produce everything necessary to compile the working paper, simply run this repository as a python package.
