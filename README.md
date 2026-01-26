@@ -21,4 +21,3 @@ Then compile the pdf:
 latexmk paper/main -pv
 ```
 
-
