@@ -12,7 +12,7 @@ dependencies = [
     "plotnine>=0.14.5",
     "plotnine-theme",
     "polars>=1.30.0",
-    "polars-utils>=0.1.13",
+    "polars-utils",
     "pyarrow>=20.0.0",
     "pyperclip>=1.11.0",
     "pyreadstat>=1.2.9",
@@ -28,8 +28,9 @@ dev = [
 ]
 
 [tool.uv.sources]
-plotnine-theme = { path = "../plotnine_theme", editable = true }
 gabriel = { git = "https://github.com/hemanth-asirvatham/GABRIEL-prerelease" }
+plotnine-theme = { git = "https://github.com/alipatti/plotnine_theme" }
+polars-utils = { git = "https://github.com/alipatti/polars_utils" }
 
 [build-system]
 requires = ["hatchling"]
