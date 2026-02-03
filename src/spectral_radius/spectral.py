@@ -1,6 +1,6 @@
 from functools import cache
 from itertools import combinations_with_replacement
-from typing import Collection, Mapping
+from typing import Collection, Iterable, Mapping
 import polars as pl
 import numpy as np
 import plotnine as pn
@@ -9,6 +9,7 @@ from polars_utils.stats import mean
 import inflection
 from tqdm import tqdm
 
+from spectral_radius.bootstrap import replicate_measures
 from spectral_radius.constants import FIGURES, START_YEAR
 from spectral_radius.gss import get_gss
 from spectral_radius.gss import OPINION_CATEGORIES
@@ -16,6 +17,7 @@ from spectral_radius.gss.demographic_variables import DEMOGRAPHIC_VARIABLES
 from spectral_radius.plot_helpers import (
     COLOR_SCALE,
     CATEGORY_WRAP,
+    COLORS,
     PERCENT_CHANGE_SCALE,
     savefig,
 )
@@ -24,11 +26,12 @@ from spectral_radius.plot_helpers import (
 def measures(
     df: pl.DataFrame,
     *,
-    w: str="w",
+    w: str = "w",
     columns: Collection[str],
+    alpha: float | None = None,
 ) -> pl.DataFrame:
     # demean
-    df = df.with_columns(pl.col(columns).pipe(lambda x: x - x.mean()))
+    df = df.with_columns(pl.col(columns).pipe(lambda x: x - x.pipe(mean, w=w)))
 
     n = len(columns)
     sigma = np.empty((n, n))
@@ -61,7 +64,18 @@ def measures(
         # sigma=sigma,
     )
 
-    return pl.DataFrame(measures)
+    results = pl.DataFrame(measures)
+
+    if not alpha:
+        return results
+
+    quantiles = dict(lo=alpha / 2, hi=1 - alpha / 2)
+    confint = df.pipe(replicate_measures, columns, method="brr").select(
+        pl.col("rho").quantile(q, interpolation="linear").alias(f"rho_{label}")
+        for label, q in quantiles.items()
+    )
+
+    return pl.concat([results, confint], how="horizontal")
 
 
 def measures_by_group(
@@ -69,37 +83,36 @@ def measures_by_group(
     variables: Collection[str],
     *,
     group: Collection[str] = ["year"],
+    **kwargs,
 ):
-    return (
-        df.drop_nulls(group)
-        .group_by(*group)
-        .map_groups(
-            lambda df_grouped: (
-                # compute measures
-                measures(df_grouped, columns=variables)
-                # make sure col labels are still there
-                .select(
-                    *(pl.lit(df_grouped.get_column(c).first()).alias(c) for c in group),
-                    pl.all(),
-                )
-            )
+    process_group = lambda df_of_group: (  # noqa
+        # compute measures
+        measures(df_of_group, columns=variables, **kwargs)
+        # make sure col labels are still there
+        .select(
+            *(pl.lit(df_of_group[c].first()).alias(c) for c in group),
+            pl.all(),
         )
     )
 
+    # PERF: partition, joblib parallel map, concat
+    return df.drop_nulls(group).group_by(*group).map_groups(process_group)
 
-# PERF: cache this?
+
 def measures_by_group_and_category(
     df: pl.DataFrame,
     categories: Mapping[str, Collection[str]],
     group: Collection[str],
+    **kwargs,
 ):
     print("Calculating polarization measures")
     print(f" - Categories: {list(categories.keys())}")
     print(f" - Groups: {group}")
 
     return pl.concat(
-        measures_by_group(df, vs, group=group).select(
-            pl.lit(cat).alias("category"), pl.all()
+        measures_by_group(df, vs, group=group, **kwargs).select(
+            pl.lit(cat).alias("category"),
+            pl.all(),
         )
         for cat, vs in tqdm(categories.items())
     ).sort("*")
@@ -120,13 +133,22 @@ def polarization_over_time_data(
     by: str | None = None,
     metric="rho",
     year_bin_width: int | None = 5,
+    categories: None | Iterable[str] = None,  # ["Welfare"],
+    **kwargs,
 ):
     gss = get_gss().with_columns(binned_year(year_bin_width))
 
+    categories = (
+        {k: v for k, v in OPINION_CATEGORIES.items() if k in categories}
+        if categories is not None
+        else OPINION_CATEGORIES
+    )
+
     rhos_pooled = gss.pipe(
         measures_by_group_and_category,
-        OPINION_CATEGORIES,
+        categories,
         ["year"],
+        **kwargs,
     )
 
     if not by:
@@ -134,8 +156,9 @@ def polarization_over_time_data(
 
     rhos_within = gss.pipe(
         measures_by_group_and_category,
-        OPINION_CATEGORIES,
+        categories,
         ["year", by],
+        **kwargs,
     )
 
     group_decomposition = (
@@ -157,11 +180,16 @@ def polarization_over_time_data(
 
 
 def polarization_figure() -> pn.ggplot:
-    rhos_pooled, *_ = polarization_over_time_data(year_bin_width=1)
+    rhos_pooled, *_ = polarization_over_time_data(year_bin_width=1, alpha=0.5)
 
     fig = (
         pn.ggplot(rhos_pooled, pn.aes("year", "rho"))
         + pn.geom_line()
+        + pn.geom_ribbon(
+            pn.aes(ymin="rho_lo", ymax="rho_hi"),
+            alpha=0.1,
+            fill=COLORS[1],
+        )
         + CATEGORY_WRAP
         + theme_ali()
         + pn.labs(
@@ -169,6 +197,7 @@ def polarization_figure() -> pn.ggplot:
             y="Spectral Norm of Covariance Matrix",
         )
     )
+    # fig.show()
 
     return fig
 

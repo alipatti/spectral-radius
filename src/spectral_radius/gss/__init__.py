@@ -24,7 +24,11 @@ def get_gss(*, weight="wtssps", encoding_function=scale_to_pm_1):
             pl.col(OPINION_VARIABLES).pipe(encoding_function),
             *sampling_vars,
         )
-        .filter(pl.col("year") >= START_YEAR)
+        .filter(
+            pl.col("year") >= START_YEAR,
+            # FIX: figure out what to do with 2021
+            pl.col("year") != 2021,
+        )
     )
 
 

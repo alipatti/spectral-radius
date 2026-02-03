@@ -1,4 +1,4 @@
-from typing import Iterator, Literal
+from typing import Collection, Iterator, Literal
 
 from plotnine_theme import theme_ali
 import polars as pl
@@ -16,9 +16,9 @@ ResamplingMethod = Literal["brr", "bootstrap"]
 
 
 def main(
-    years=range(2000, 2011, 4),
-    categories=("Welfare",),
-    methods: list[ResamplingMethod] = ["brr", "bootstrap"],
+    years=[*range(2000, 2019, 2), *range(2022, 2025, 2)],
+    categories: list[str] = ["Welfare"],
+    method: ResamplingMethod = "brr",
 ):
     resamples = pl.concat(
         get_gss()
@@ -31,14 +31,7 @@ def main(
         )
         for category in categories
         for year in years
-        for method in methods
     )
-
-    (
-        pn.ggplot(resamples, pn.aes("rho", color="method"))
-        + pn.geom_density()
-        + pn.facet_wrap("year", scales="free")
-    ).show()
 
     p = (
         pl.col("rho")
@@ -70,6 +63,7 @@ def main(
         .list.to_array(2)
     )
 
+
     confidence_intervals = (
         resamples.group_by("year", "category")
         .agg(normal=normal_ci, empirical=empirical_ci)
@@ -96,12 +90,38 @@ def main(
         + pn.geom_line(pn.aes(y="normal_density"), color=COLORS[1], linetype="dashed")
         + pn.labs(color="Method", x="Spectral Radius", y="Density")
     )
+    # p.show()
+
+    point_estimates = pl.concat(
+        get_gss()
+        .filter(pl.col("year") == year)
+        .pipe(measures, columns=OPINION_CATEGORIES[category])
+        .with_columns(
+            category=pl.lit(category),
+            year=pl.lit(year),
+        )
+        for category in categories
+        for year in years
+    )
+
+    p = (
+        pn.ggplot(point_estimates, pn.aes(x="year"))
+        + theme_ali()
+        + COLOR_SCALE
+        # CIs
+        + pn.geom_ribbon(
+            pn.aes(ymin="rho_lo", ymax="rho_hi", color="method"), alpha=0.2, fill=None
+        )
+        # points
+        + pn.geom_line(pn.aes(y="rho"))
+        + pn.labs(y="Spectral Radius", x="Year")
+    )
     p.show()
 
 
 def replicate_measures(
     df: pl.DataFrame,
-    cols: list[str],
+    cols: Collection[str],
     *,
     method: ResamplingMethod = "brr",
     **kwargs,
@@ -115,7 +135,7 @@ def replicate_measures(
 
     return pl.concat(
         df.with_columns(w)
-        .pipe(measures, columns=cols)
+        .pipe(measures, columns=cols, alpha=None)
         .with_columns(
             bootstrap_iter=i,
         )
@@ -129,7 +149,6 @@ def bootstrap_weights(
     weight_col=pl.col("w"),
     n_iters=150,
 ) -> Iterator[pl.Expr]:
-
     np.random.seed(1280)  # scipy uses numpy for rng
 
     spine = df.select("vstrat", "vpsu").unique()
