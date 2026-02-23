@@ -276,9 +276,8 @@ def group_decomp_figure(by: str = "race") -> pn.ggplot:
 
 
 def main():
-    cuts = DEMOGRAPHIC_VARIABLES.keys()
     cuts = ("political_party",)
-    cuts = ()
+    cuts = DEMOGRAPHIC_VARIABLES.keys()
 
     all_figures = (
         {
