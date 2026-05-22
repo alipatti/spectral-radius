@@ -13,16 +13,18 @@ from spectral_radius.constants import START_YEAR
 def get_gss(*, weight="wtssps", encoding_function=scale_to_pm_1):
     return (
         load_gss_data(use_cache=True)[0]
+        .filter(pl.col("year") >= START_YEAR)
+        # add weights
+        .with_columns(w=weight)
+        # select relevant columns
         .select(
             "year",
             # demographic variables
             *(v.alias(k) for k, v in DEMOGRAPHIC_VARIABLES.items()),
-            # weight
-            pl.col(weight).alias("w"),
             # analysis variables
             pl.col(OPINION_VARIABLES).pipe(encoding_function),
+            "w",
         )
-        .filter(pl.col("year") >= START_YEAR)
     )
 
 
