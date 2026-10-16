@@ -48,6 +48,8 @@ target-minus-state form as the tie update:
 $macron(X)_t = D_t^(-1) A_t X_t$ stacks the (tie-weighted) average
 positions of each agent's neighbors, and the pull toward it is scaled
 by degree, so better-connected agents adjust faster.
+This form requires nonzero degrees, which can fail once ties go
+negative (remark 3); the Laplacian form is always well defined.
 Both equations are partial adjustment toward a weighted average of an
 intrinsic type and a social best response (@tbl:structure).
 
@@ -124,14 +126,17 @@ A few remarks:
   We treat this as a feature:
   polarization plausibly requires effectively negative ties.
 
-+ The anchor keeps the network nondegenerate:
-  total tie weight obeys
-  $bold(1)^top A_(t+1) bold(1)
-  = (1 - rho_0) thin bold(1)^top A_t bold(1)
-  + rho_0 thin bold(1)^top A_0 bold(1)$
-  (the similarity term drops out because $S_t bold(1) = 0$),
-  so it converges to $bold(1)^top A_0 bold(1)$
++ The anchor keeps the network nondegenerate.
+  Since $S_t bold(1) = 0$, the similarity term drops out of the row sums,
+  so degrees obey an autonomous recursion
+  $
+    A_(t+1) bold(1)
+    = (1 - rho_0 - rho) thin A_t bold(1) + rho_0 thin A_0 bold(1),
+  $
+  which converges to $rho_0 A_0 bold(1) \/ (rho_0 + rho)$
   rather than decaying to zero.
+  The degree path is independent of opinions:
+  homophily reallocates ties but never changes how many each agent holds.
 
 == Quantity of interest
 
@@ -253,18 +258,64 @@ and the social stubbornness $rho_0 \/ rho$).
 
 *TODO:* exact short-term dynamics?
 
+== Microfoundations
+
+The opinion update is unit-step gradient play in the Friedkin--Johnsen game
+$
+  u_i = -kappa_0 / 2 norm(x_i - x_(i 0))^2
+        - kappa / 2 sum_j A_(i j) norm(x_i - x_j)^2.
+$
+No single utility over $(x_i, a_i)$ generates both updates under
+unconstrained gradient play.
+The cross-partials disagree:
+$partial Delta x_i \/ partial A_(i j) prop x_j - x_i$
+but $partial Delta A_(i j) \/ partial x_i prop x_j$.
+
+The dynamics are exactly _projected_ gradient play once degrees are
+budgets.
+Add the tie costs
+$
+  c_t / 2 sum_j (rho_0 (A_(i j) - A_(0, i j))^2 + rho A_(i j)^2),
+  quad c_t = kappa T_t / rho,
+$
+to $u_i$ with $T_t = norm(X_t)_F^2$ taken as given,
+and project the tie step (size $rho \/ (kappa T_t)$) onto symmetric
+matrices with the row sums of remark 4.
+The marginal disagreement cost of a tie decomposes as
+$
+  -1 / 2 norm(x_i - x_j)^2 = G_(i j) - 1 / 2 (G_(i i) + G_(j j)),
+$
+and the second term lies in the normal space
+$\{v bold(1)^top + bold(1) v^top\}$ of the budget set,
+so projection leaves exactly $kappa G$.
+Homophily on Gram similarity is distance-based disagreement plus
+market-clearing shadow prices on each agent's attention
+(verified numerically to machine precision).
+
+This is a clean characterization but not yet a compelling
+microfoundation:
+
++ Signed ties are inconsistent with a time budget:
+  a negative tie frees budget for positive ones.
++ The budget binds as a floor.
+  Ties have no benefit beyond the anchor, so agents hold them only
+  because they must.
++ Clearing is joint.
+  Per-agent projection leaves the neighbor term $G_(j j)$;
+  double-centering needs a market or bargaining story for attention.
++ The normalization by $T_t$ requires tie costs proportional to
+  aggregate dispersion, taken as given.
+  We have no natural story for this.
++ The budget path varies over time unless $A$ starts at the degree
+  steady state $rho_0 A_0 bold(1) \/ (rho_0 + rho)$.
+
 == Extensions
 
 - *Microfoundations.*
-  The partial-adjustment form is already the shape of a best response:
-  opinions as Nash equilibrium of a quadratic disagreement game
-  (Friedkin--Johnsen; Bindel, Kleinberg & Oren 2015)
-  or Gaussian Bayesian learning;
-  ties as optimal attention allocation under a time budget with
-  homophilous preferences (Currarini, Jackson & Pin 2009;
-  Sethi & Yildiz 2016).
-  Remaining work is the formal derivation.
-  Addressing this is essential to publication in econ.
+  Resolve the open problems above
+  (relevant: Friedkin--Johnsen; Bindel, Kleinberg & Oren 2015;
+  Currarini, Jackson & Pin 2009; Sethi & Yildiz 2016).
+  Essential to publication in econ.
 
 - *Noise.*
   Add an opinion shock $sigma thin xi_t$ that is mean zero across
