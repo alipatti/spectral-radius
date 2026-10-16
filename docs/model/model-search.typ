@@ -8,6 +8,28 @@ Each round records what subagents tried and found.
 All numbers come from small simulations and are illustrative rather
 than robust.
 
+== Process
+
+Each round dispatches a few subagents in parallel on distinct
+directions or open problems, then records their findings here as a new
+dated round section and updates _Current status_.
+The user steers between and during rounds.
+
+- Subagents read this document and `setup.typ` (the original model,
+  with its microfoundations section) and, for data, the paper
+  (`paper/gss.tex`, `paper/decompositions.tex`).
+- Experiments stay small: under 1 GB of RAM and a few minutes, run with
+  `uv run --with numpy python ...` in a scratch directory.
+  Subagents do not edit repo files or download data.
+- Reports lead with the verdict and the model in equations, give
+  numbers, and flag what is derived, checked by simulation, or
+  conjectured.
+- Write-ups here are concise and readable top to bottom.
+  Superseded findings stay in their round section;
+  _Current status_ always reflects the latest view.
+- Scratch scripts from rounds 0--2 were not kept;
+  every result they produced is recorded below.
+
 == Criteria
 
 Hard criteria.
