@@ -137,7 +137,15 @@ A few remarks:
 
 We care about the covariance structure of agents' opinions
 $Sigma_t = X_t^top X_t \/ N$, and in particular, its largest eigenvalue
-$lambda_1(Sigma_t) = norm(Sigma_t)_2$.
+$lambda_1(Sigma_t) = norm(Sigma_t)_2$
+and the share of opinion variance along the dominant axis
+$
+  lambda_1(Sigma_t) / op("tr") Sigma_t.
+$
+The share is scale-free, so it is the natural object to compare with data.
+The matrix $Sigma_t$ shares its nonzero spectrum with the Gram matrix
+$X_t X_t^top \/ N$,
+which links the observable issue covariance to the network dynamics.
 
 == Model solution
 
