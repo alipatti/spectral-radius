@@ -4,6 +4,7 @@ from typing import override
 import polars as pl
 import pytest
 from helpers import codebook_rows, frame
+from polars.testing import assert_frame_equal
 
 from spectral_radius.surveys import (
     CleanFrames,
@@ -11,6 +12,7 @@ from spectral_radius.surveys import (
     Respondents,
     Responses,
     Source,
+    build,
 )
 
 
@@ -99,3 +101,11 @@ def test_load_adds_survey_column(tmp_path: Path):
     for member in (data.codebook, data.respondents, data.responses):
         assert member["survey"].cast(pl.String).to_list() == ["fake"]
 
+
+def test_build_writes_each_frame(tmp_path: Path):
+    """Write each validated frame to parquet for use outside python."""
+    data = build([FakeSource(tmp_path)], dest=tmp_path / "clean")
+
+    for member in ("codebook", "respondents", "responses"):
+        written = pl.read_parquet(tmp_path / "clean" / f"{member}.parquet")
+        assert_frame_equal(written, getattr(data, member))
