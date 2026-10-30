@@ -62,7 +62,17 @@ class Source(ABC):
 
     @abstractmethod
     def clean(self, raw: Path) -> CleanFrames:
-        """Clean the raw files in `raw` into frames matching the schemas."""
+        """
+        Clean the raw files in `raw` into frames matching the schemas.
+
+        Responses must hold only valid answers:
+        the source nulls out (and so drops) its own missing codes,
+        since codebook labels don't define which values are missing.
+        """
+        # NOTE: nothing checks that missing codes were removed; for surveys
+        # whose missing codes are ordinary integers (e.g. anes' 0, 8, 9) one
+        # left in would count as an answer and stretch the observed range
+        # that `scale_to_pm_1` uses
 
     def fetch(self, *, refresh: bool = False) -> Path:
         """Return the directory of raw files, downloading them if not cached."""

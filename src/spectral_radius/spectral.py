@@ -33,6 +33,10 @@ def pairwise_complete_covariance(
     observed, divided by the sum of `w` over exactly those rows (0 if that is 0).
     Unobserved entries of `x` must be 0 so they drop out of the numerator.
     """
+    # NOTE: a pairwise-complete matrix needn't be positive semidefinite,
+    # since each entry uses a different set of rows; with heavy, uneven
+    # missingness its smallest eigenvalues can be negative, which affects
+    # `trace` and `spectral_gap` more than `rho`
     observed = observed.astype(float)
 
     numerator = (x * w[:, None]).T @ x
@@ -92,6 +96,9 @@ def measures_by_group_and_category(
         .select(
             *group,
             pl.col(w),
+            # NOTE: the means are unweighted and use each variable's own non-null
+            # rows, while the covariances are weighted and use each pair's rows;
+            # a weighted mean over the pair's rows would be more consistent
             pl.col(variables).pipe(lambda x: x - x.mean()).over(group),
         )
         .sort(group, maintain_order=True)
@@ -184,6 +191,8 @@ def polarization_over_time_data(
     group_decomposition = (
         rhos_pooled.select("year", "category", metric)
         .join(
+            # NOTE: groups are weighted by their total weight, which counts
+            # respondents who answered none of the category's questions
             rhos_within.group_by("year", "category").agg(
                 pl.col(metric).pipe(mean, w="w")
             ),

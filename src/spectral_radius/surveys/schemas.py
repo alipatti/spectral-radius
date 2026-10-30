@@ -77,6 +77,9 @@ class Respondents(dy.Schema):
     survey = dy.Categorical(primary_key=True)
     year = dy.Int64(primary_key=True)
     respondent = dy.Int64(primary_key=True)
+    # NOTE: weights must be strictly positive, which holds for the gss
+    # (minimum about 0.074); other surveys (e.g. anes) may have zero weights
+    # for respondents outside a sample, which would need this relaxed
     weight = dy.Float64(nullable=False, min_exclusive=0)
     sex = dy.Enum(SEX.categories, nullable=True)
     race = dy.Enum(RACE.categories, nullable=True)
