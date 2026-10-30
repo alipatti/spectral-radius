@@ -5,9 +5,12 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "dataframely>=3.1.2",
     "gabriel",
     "great-tables>=0.20.0",
+    "httpx>=0.28.1",
     "inflection>=0.5.1",
+    "loguru>=0.7.3",
     "matplotlib>=3.10.3",
     "plotnine>=0.14.5",
     "plotnine-theme",
@@ -25,6 +28,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "ipython>=9.3.0",
+    "pytest>=9.2.0",
 ]
 
 [tool.uv.sources]
@@ -35,3 +39,9 @@ polars-utils = { git = "https://github.com/alipatti/polars_utils" }
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "data: needs the cached raw GSS data (data/raw/gss and data/gss); deselect with -m 'not data'",
+]
