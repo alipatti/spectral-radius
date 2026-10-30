@@ -6,7 +6,12 @@ import pytest
 from polars.testing import assert_frame_equal, assert_series_equal
 
 from spectral_radius.surveys import Respondents
-from spectral_radius.surveys.gss import codebook, respondents, responses
+from spectral_radius.surveys.gss import (
+    QUESTIONS_SCHEMA,
+    codebook,
+    respondents,
+    responses,
+)
 
 RAW_DEMOGRAPHICS = [
     "sex",
@@ -25,6 +30,14 @@ RAW_DEMOGRAPHICS = [
 ]
 NO_BA = "No Bachelor's degree"
 BA = "Bachelor's degree or more"
+
+
+def questions(texts: Sequence[tuple[str, str]]) -> pl.LazyFrame:
+    """The explorer's question text for each `(name, text)`."""
+    return pl.LazyFrame(
+        [{"name": name, "surveyQuestion": [text]} for name, text in texts],
+        schema=QUESTIONS_SCHEMA,
+    )
 
 
 def raw_gss(columns: Mapping[str, Sequence[Any]]) -> pl.LazyFrame:
@@ -176,7 +189,30 @@ def test_codebook_years_and_labels():
         schema_overrides={"values": pl.List(pl.Int64), "labels": pl.List(pl.String)},
     )
 
-    q = codebook(raw, variables).collect().row(1, named=True)
+    q = codebook(raw, variables, questions([])).collect().row(1, named=True)
 
     assert q["years"] == [2000, 2004]
     assert q["labels"] == {"value": [1, 2], "label": ["yes", "no"]}
+
+
+def test_codebook_question_text_matches_differently_named_variables():
+    """Match the explorer's upper-case and underscored names to the data's."""
+    raw = pl.LazyFrame({"year": [2000], "id": [1], "racdif1": [1], "q": [1]})
+    variables = pl.LazyFrame(
+        {
+            "variable": ["id", "racdif1", "q"],
+            "description": [None] * 3,
+            "values": [[]] * 3,
+            "labels": [[]] * 3,
+        },
+        schema_overrides={
+            "description": pl.String,
+            "values": pl.List(pl.Int64),
+            "labels": pl.List(pl.String),
+        },
+    )
+    published = questions([("id_", "Respondent id"), ("RACDIF1", "Differences?")])
+
+    result = codebook(raw, variables, published).collect()
+
+    assert result["question"].to_list() == ["Respondent id", "Differences?", None]

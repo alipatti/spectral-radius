@@ -33,11 +33,16 @@ class Codebook(dy.Schema):
     """
     One row per variable of a survey.
 
-    `labels` lists the labeled values of a variable.
+    `description` is the variable's short label
+    and `question` the text of the question asked
+    (null where the source publishes none).
+    `labels` lists the variable's value labels as the source publishes them,
+    as documentation only.
     Labels needn't cover every valid value
     (the GSS labels only the endpoints of some scales, e.g. `eqwlth`),
-    so `labels` doesn't define which values are missing;
-    sources drop missing codes from `Responses` themselves.
+    so they don't define which values are missing:
+    each source nulls out its own missing codes while cleaning,
+    and `Responses` holds only the answers that remain.
     """
 
     survey = dy.Categorical(primary_key=True)

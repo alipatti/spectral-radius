@@ -4,6 +4,7 @@ The General Social Survey.
 Codes are documented at https://gssdataexplorer.norc.org/variables/vfilter.
 """
 
+import math
 import tempfile
 from collections.abc import Sequence
 from pathlib import Path
@@ -19,9 +20,35 @@ from spectral_radius.surveys.question_sets import question_variables
 from spectral_radius.surveys.source import DATA_ROOT, CleanFrames, Source
 
 URL = "https://gss.norc.org/content/dam/gss/get-the-data/documents/stata/GSS_stata.zip"
+# the search api behind the gss data explorer, the only source of question text
+QUESTIONS_URL = (
+    "https://3ilfsaj2lj.execute-api.us-east-1.amazonaws.com/prod/variables/guest-search"
+)
 DATA_FILE = "gss.parquet"
 VARIABLES_FILE = "variables.parquet"
+QUESTIONS_FILE = "questions.parquet"
 WEIGHT = "wtssps"
+QUESTIONS_PER_PAGE = 100
+
+# the fields kept of each variable the search api returns
+QUESTIONS_SCHEMA = pl.Schema(
+    {
+        "name": pl.String,
+        "description": pl.String,
+        "surveyQuestion": pl.List(pl.String),
+        "years": pl.List(
+            pl.Struct(
+                {
+                    "year": pl.Int64,
+                    "ballotInfo": pl.List(pl.String),
+                    "isQuestionAvailable": pl.String,
+                }
+            )
+        ),
+        "module": pl.List(pl.String),
+        "subject": pl.List(pl.String),
+    }
+)
 
 
 def _in(column: str, low: int, high: int) -> pl.Expr:
@@ -179,6 +206,60 @@ def write_raw(
     variables_table(metadata).write_parquet(dest / VARIABLES_FILE)
 
 
+def search_variables(client: httpx.Client, page: int, limit: int) -> dict:
+    """One page of the explorer's variable search, over every year and subject."""
+    request = {
+        "page": page,
+        "limit": limit,
+        "subjects": None,
+        "modules": None,
+        "my_tags": None,
+        "shared_tags": None,
+        # the api requires a range; this one covers every year
+        "yearRange": [1972, 2100],
+        "years": None,
+        "parameter": None,
+        "term": None,
+        "workspaceId": None,
+        "yearBallot": None,
+    }
+    response = client.post(QUESTIONS_URL, json=request)
+    response.raise_for_status()
+    return response.json()
+
+
+def download_questions(dest: Path) -> None:
+    """Write every variable's question text, as the data explorer publishes it."""
+    with httpx.Client(timeout=60) as client:
+        total = search_variables(client, page=1, limit=1)["totalVarCount"]
+        pages = range(1, math.ceil(total / QUESTIONS_PER_PAGE) + 1)
+        variables = [
+            variable
+            for page in pages
+            for variable in search_variables(client, page, QUESTIONS_PER_PAGE)[
+                "variables"
+            ]
+        ]
+
+    pl.DataFrame(
+        [{k: v.get(k) for k in QUESTIONS_SCHEMA} for v in variables],
+        schema=QUESTIONS_SCHEMA,
+    ).write_parquet(dest / QUESTIONS_FILE)
+
+
+def question_text(questions: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    The text of each variable's question, keyed like the data's columns.
+
+    The explorer names a few variables differently from the stata file:
+    in upper or mixed case, or with a trailing underscore (`id_`, `class_`).
+    """
+    return questions.select(
+        pl.col("name").str.to_lowercase().str.strip_suffix("_").alias("variable"),
+        pl.col("surveyQuestion").list.first().alias("question"),
+    ).unique("variable", keep="first", maintain_order=True)
+
+
 def years_observed(gss: pl.LazyFrame) -> pl.LazyFrame:
     """The sorted years in which each variable has any non-null value."""
     return (
@@ -191,19 +272,30 @@ def years_observed(gss: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
-def codebook(gss: pl.LazyFrame, variables: pl.LazyFrame) -> pl.LazyFrame:
-    return variables.join(
-        years_observed(gss),
-        on="variable",
-        how="left",
-        validate="1:1",
-        maintain_order="left",
-    ).select(
-        pl.col("variable").cast(pl.Categorical),
-        "description",
-        pl.lit(None, dtype=pl.String).alias("question"),
-        pl.col("years").fill_null([]),
-        pl.struct(value="values", label="labels").alias("labels"),
+def codebook(
+    gss: pl.LazyFrame,
+    variables: pl.LazyFrame,
+    questions: pl.LazyFrame,
+) -> pl.LazyFrame:
+    def by_variable(left: pl.LazyFrame, right: pl.LazyFrame) -> pl.LazyFrame:
+        return left.join(
+            right,
+            on="variable",
+            how="left",
+            validate="1:1",
+            maintain_order="left",
+        )
+
+    return (
+        variables.pipe(by_variable, years_observed(gss))
+        .pipe(by_variable, question_text(questions))
+        .select(
+            pl.col("variable").cast(pl.Categorical),
+            "description",
+            "question",
+            pl.col("years").fill_null([]),
+            pl.struct(value="values", label="labels").alias("labels"),
+        )
     )
 
 
@@ -269,12 +361,18 @@ class GSS(Source):
             # from_pandas returns a series only when given one
             write_raw(cast(pl.DataFrame, pl.from_pandas(frame)), metadata, dest)
 
+        download_questions(dest)
+
     @override
     def clean(self, raw: Path) -> CleanFrames:
         gss = pl.scan_parquet(raw / DATA_FILE)
 
         return CleanFrames(
-            codebook=codebook(gss, pl.scan_parquet(raw / VARIABLES_FILE)),
+            codebook=codebook(
+                gss,
+                pl.scan_parquet(raw / VARIABLES_FILE),
+                pl.scan_parquet(raw / QUESTIONS_FILE),
+            ),
             respondents=respondents(gss),
             responses=responses(gss, self.variables),
         )
