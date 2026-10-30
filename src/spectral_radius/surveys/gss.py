@@ -1,0 +1,280 @@
+"""
+The General Social Survey.
+
+Codes are documented at https://gssdataexplorer.norc.org/variables/vfilter.
+"""
+
+import tempfile
+from collections.abc import Sequence
+from pathlib import Path
+from typing import cast, override
+from zipfile import ZipFile
+
+import httpx
+import polars as pl
+import pyreadstat
+
+from spectral_radius.surveys import schemas
+from spectral_radius.surveys.question_sets import question_variables
+from spectral_radius.surveys.source import DATA_ROOT, CleanFrames, Source
+
+URL = "https://gss.norc.org/content/dam/gss/get-the-data/documents/stata/GSS_stata.zip"
+DATA_FILE = "gss.parquet"
+VARIABLES_FILE = "variables.parquet"
+WEIGHT = "wtssps"
+
+
+def _in(column: str, low: int, high: int) -> pl.Expr:
+    return pl.col(column).is_between(low, high)
+
+
+DEMOGRAPHICS: dict[str, pl.Expr] = {
+    # https://gssdataexplorer.norc.org/variables/81/vshow
+    "sex": pl.col("sex").replace_strict(
+        {1: "Male", 2: "Female"},
+        default=None,
+        return_dtype=schemas.SEX,
+    ),
+    # https://gssdataexplorer.norc.org/variables/82/vshow
+    "race": pl.col("race").replace_strict(
+        {1: "White", 2: "Black", 3: "Other"},
+        default=None,
+        return_dtype=schemas.RACE,
+    ),
+    # https://gssdataexplorer.norc.org/variables/287/vshow
+    # TODO: a missing `relig` becomes "Other" rather than null
+    "religion": pl.col("relig").replace_strict(
+        {
+            1: "Protestant",
+            2: "Catholic",
+            3: "Jewish",
+            4: "None",
+            5: "Other",
+            11: "Protestant",
+        },
+        default=pl.lit("Other"),
+        return_dtype=schemas.RELIGION,
+    ),
+    # https://gssdataexplorer.norc.org/variables/53/vshow
+    # age bin cuts taken from Pew:
+    # https://www.pewresearch.org/politics/fact-sheet/party-affiliation-fact-sheet-npors/
+    "age_bucket": (
+        pl.col("age")
+        .cut(
+            breaks=[30, 50, 65],
+            labels=schemas.AGE_BUCKET.categories.to_list(),
+            left_closed=True,
+        )
+        .cast(schemas.AGE_BUCKET)
+    ),
+    # https://gssdataexplorer.norc.org/variables/141/vshow
+    "political_party": (
+        pl.when(_in("partyid", 0, 1))
+        .then(pl.lit("Democrat"))
+        .when(_in("partyid", 2, 4))
+        .then(pl.lit("Independent"))
+        .when(_in("partyid", 5, 6))
+        .then(pl.lit("Republican"))
+        .cast(schemas.POLITICAL_PARTY)
+    ),
+    # https://gssdataexplorer.norc.org/variables/178/vshow
+    "political_ideology": (
+        pl.when(_in("polviews", 1, 3))
+        .then(pl.lit("Liberal"))
+        .when(_in("polviews", 5, 7))
+        .then(pl.lit("Conservative"))
+        .when(pl.col("polviews") == 4)
+        .then(pl.lit("Moderate"))
+        .cast(schemas.POLITICAL_IDEOLOGY)
+    ),
+    # https://gssdataexplorer.norc.org/variables/3/vshow
+    # TODO: fix the "Unmployed" typo (in `schemas.WORKFORCE_STATUS` too)
+    "workforce_status": (
+        pl.when(_in("wrkstat", 1, 3))
+        .then(pl.lit("Employed"))
+        .when(pl.col("wrkstat") == 4)
+        .then(pl.lit("Unmployed"))
+        .when(_in("wrkstat", 5, 8))
+        .then(pl.lit("Out of labor force"))
+        .cast(schemas.WORKFORCE_STATUS)
+    ),
+    # https://gssdataexplorer.norc.org/variables/59/vshow
+    # TODO: the second branch should test `degree >= 3`, not `educ >= 3`
+    "education": (
+        pl.when(pl.col("degree") < 3)
+        .then(pl.lit("No Bachelor's degree"))
+        .when(pl.col("educ") >= 3)
+        .then(pl.lit("Bachelor's degree or more"))
+        .cast(schemas.EDUCATION)
+    ),
+    # https://gssdataexplorer.norc.org/variables/94/vshow
+    # https://gssdataexplorer.norc.org/variables/95/vshow
+    "self_or_parent_immigrant": (
+        # self born elsewhere
+        pl.col("born").eq(2)
+        # or either parent born elsewhere
+        | pl.col("parborn").is_in([1, 2, 4, 6, 8])
+    ),
+    # https://gssdataexplorer.norc.org/variables/119/vshow
+    "geographic_region": pl.col("region").replace_strict(
+        {1: "Northeast", 2: "Midwest", 3: "South", 4: "West"},
+        default=None,
+        return_dtype=schemas.GEOGRAPHIC_REGION,
+    ),
+    # https://gssdataexplorer.norc.org/variables/120/vshow
+    "type_of_neighborhood": (
+        pl.when(_in("xnorcsiz", 1, 2))
+        .then(pl.lit("Urban"))
+        .when(_in("xnorcsiz", 3, 6))
+        .then(pl.lit("Suburban"))
+        .when(_in("xnorcsiz", 7, 10))
+        .then(pl.lit("Rural"))
+        .cast(schemas.TYPE_OF_NEIGHBORHOOD)
+    ),
+}
+
+RESPONDENT = pl.col("id").alias("respondent")
+
+
+def variables_table(metadata: pyreadstat.metadata_container) -> pl.DataFrame:
+    """
+    One row per variable: its description and value labels.
+
+    Only integer codes are kept;
+    the letter codes are stata's extended missing values, which read as null.
+    """
+    labels = metadata.variable_value_labels
+
+    def labeled_values(variable: str) -> list[tuple[int, str]]:
+        return sorted(
+            (k, v) for k, v in labels.get(variable, {}).items() if isinstance(k, int)
+        )
+
+    return pl.DataFrame(
+        [
+            {
+                "variable": variable,
+                "description": metadata.column_names_to_labels.get(variable),
+                "values": [k for k, _ in labeled_values(variable)],
+                "labels": [v for _, v in labeled_values(variable)],
+            }
+            for variable in metadata.column_names
+        ],
+        schema={
+            "variable": pl.String,
+            "description": pl.String,
+            "values": pl.List(pl.Int64),
+            "labels": pl.List(pl.String),
+        },
+    )
+
+
+def write_raw(
+    data: pl.DataFrame,
+    metadata: pyreadstat.metadata_container,
+    dest: Path,
+) -> None:
+    """Write the GSS data and its variable metadata as parquet."""
+    data.write_parquet(dest / DATA_FILE)
+    variables_table(metadata).write_parquet(dest / VARIABLES_FILE)
+
+
+def years_observed(gss: pl.LazyFrame) -> pl.LazyFrame:
+    """The sorted years in which each variable has any non-null value."""
+    return (
+        gss.group_by(pl.col("year").alias("__year"))
+        .agg(pl.all().is_not_null().any())
+        .unpivot(index="__year")
+        .filter(pl.col("value"))
+        .group_by("variable")
+        .agg(pl.col("__year").sort().alias("years"))
+    )
+
+
+def codebook(gss: pl.LazyFrame, variables: pl.LazyFrame) -> pl.LazyFrame:
+    return variables.join(
+        years_observed(gss),
+        on="variable",
+        how="left",
+        validate="1:1",
+        maintain_order="left",
+    ).select(
+        pl.col("variable").cast(pl.Categorical),
+        "description",
+        pl.lit(None, dtype=pl.String).alias("question"),
+        pl.col("years").fill_null([]),
+        pl.struct(value="values", label="labels").alias("labels"),
+    )
+
+
+def respondents(gss: pl.LazyFrame) -> pl.LazyFrame:
+    return gss.select(
+        "year",
+        RESPONDENT,
+        pl.col(WEIGHT).alias("weight"),
+        **DEMOGRAPHICS,
+    )
+
+
+def responses(gss: pl.LazyFrame, variables: Sequence[str]) -> pl.LazyFrame:
+    """
+    Answers to `variables` in long format.
+
+    Missing codes are stata extended missing values, already null in the raw data.
+    """
+    return (
+        gss.select("year", RESPONDENT, *variables)
+        .unpivot(index=["year", "respondent"])
+        .drop_nulls("value")
+        .with_columns(
+            pl.col("variable").cast(pl.Categorical),
+            pl.col("value").cast(pl.Int64),
+        )
+    )
+
+
+class GSS(Source):
+    """The cumulative GSS file, 1972 onward."""
+
+    name = "gss"
+
+    def __init__(
+        self,
+        root: Path = DATA_ROOT,
+        variables: Sequence[str] | None = None,
+    ) -> None:
+        super().__init__(root)
+        self.variables = list(
+            question_variables(self.name) if variables is None else variables
+        )
+
+    @override
+    def download(self, dest: Path) -> None:
+        with tempfile.TemporaryDirectory(dir=dest) as scratch:
+            archive = Path(scratch) / "GSS_stata.zip"
+
+            with httpx.stream("GET", URL, follow_redirects=True, timeout=60) as r:
+                r.raise_for_status()
+                with archive.open("wb") as f:
+                    for chunk in r.iter_bytes():
+                        f.write(chunk)
+
+            with ZipFile(archive) as z:
+                dta = z.extract(
+                    next(f for f in z.namelist() if f.endswith(".dta")),
+                    scratch,
+                )
+
+            frame, metadata = pyreadstat.read_dta(dta, encoding="LATIN1")
+            # from_pandas returns a series only when given one
+            write_raw(cast(pl.DataFrame, pl.from_pandas(frame)), metadata, dest)
+
+    @override
+    def clean(self, raw: Path) -> CleanFrames:
+        gss = pl.scan_parquet(raw / DATA_FILE)
+
+        return CleanFrames(
+            codebook=codebook(gss, pl.scan_parquet(raw / VARIABLES_FILE)),
+            respondents=respondents(gss),
+            responses=responses(gss, self.variables),
+        )

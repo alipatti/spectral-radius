@@ -1,117 +1,13 @@
-from itertools import product
 from pathlib import Path
 
-
-import polars as pl
-import inflection
 import gabriel
+import inflection
+import polars as pl
 
 from spectral_radius.gss.data import get_all_gss_variables, load_gss_data
+from spectral_radius.surveys.question_sets import GSS_OPINION_CATEGORIES
 
-OPINION_CATEGORIES = {
-    "Free Speech": [
-        f"{a}{b}"
-        for a, b in product(
-            ("spk", "lib", "col"),
-            ("ath", "mil", "rac", "homo", "mslm"),
-        )
-    ],
-    "Government Spending": [
-        "advfront",
-    ]
-    + [
-        f"nat{expense}"
-        for expense in (
-            "spac",
-            "envir",
-            "heal",
-            "city",
-            "crime",
-            "drug",
-            "educ",
-            "race",
-            "arms",
-            "aid",
-            "fare",
-            "road",
-            "soc",
-            "mass",
-            "park",
-            # "spacy",
-            # "enviy",
-            # "healy",
-            # "cityy",
-            # "crimy",
-            # "drugy",
-            # "educy",
-            # "racey",
-            # "armsy",
-            # "aidy",
-            # "farey",
-            # "sci",
-            # "chld",
-        )
-    ],
-    "Affirmative Action": [
-        "helpblk",
-        "affrmact",
-        "fejobaff",
-        "fehire",
-    ],
-    "Race": [
-        "wrkwayup",
-        "natrace",
-        *(f"{prefix}rac" for prefix in ("spk", "col", "lib")),
-        *(f"racdif{i}" for i in (1, 2, 3, 4)),
-    ],
-    "Welfare": [
-        # "aidhouse", # not available enough
-        "helpsick",
-        "helppoor",
-        "eqwlth",
-        "natfare",
-    ],
-    "Police and the Judicial System": [
-        *(f"pol{action}" for action in ("hitok", "abuse", "murdr", "escap", "attak")),
-        "courts",
-        "cappun",
-        "natcrime",
-        "conjudge",
-    ],
-    "Sex and Birth Control": [
-        # sex
-        "premarsx",
-        "xmarsex",
-        "homosex",
-        # "pornlaw",
-        "sexeduc",
-        "teensex",
-        # birth control
-        "pillok",
-    ],
-    "Abortion": [
-        # abortion
-        f"ab{reason}"
-        for reason in ("defect", "nomore", "hlth", "poor", "rape", "single", "any")
-    ],
-    # "Miscellaneous": [
-    #     # guns
-    #     "gunlaw",
-    #     # religion
-    #     "prayer",
-    #     "postlife",
-    #     "god",
-    #     # marijuana
-    #     "grass",
-    #     # science
-    #     # immigration
-    #     "letin1a",
-    #     # american dream
-    #     "goodlife",
-    # ],
-}
-
-
+OPINION_CATEGORIES = GSS_OPINION_CATEGORIES
 OPINION_VARIABLES = [v for vs in OPINION_CATEGORIES.values() for v in vs]
 
 
