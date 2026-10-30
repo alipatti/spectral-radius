@@ -69,18 +69,20 @@ DEMOGRAPHICS: dict[str, pl.Expr] = {
         return_dtype=schemas.RACE,
     ),
     # https://gssdataexplorer.norc.org/variables/287/vshow
-    # TODO: a missing `relig` becomes "Other" rather than null
-    "religion": pl.col("relig").replace_strict(
-        {
-            1: "Protestant",
-            2: "Catholic",
-            3: "Jewish",
-            4: "None",
-            5: "Other",
-            11: "Protestant",
-        },
-        default=pl.lit("Other"),
-        return_dtype=schemas.RELIGION,
+    # codes without a category of their own (e.g. 6, buddhism) are "Other"
+    "religion": pl.when(pl.col("relig").is_not_null()).then(
+        pl.col("relig").replace_strict(
+            {
+                1: "Protestant",
+                2: "Catholic",
+                3: "Jewish",
+                4: "None",
+                5: "Other",
+                11: "Protestant",
+            },
+            default=pl.lit("Other"),
+            return_dtype=schemas.RELIGION,
+        )
     ),
     # https://gssdataexplorer.norc.org/variables/53/vshow
     # age bin cuts taken from Pew:

@@ -63,8 +63,8 @@ def raw_gss(columns: Mapping[str, Sequence[Any]]) -> pl.LazyFrame:
         ("race", {"race": [1, 2, 3, None]}, ["White", "Black", "Other", None]),
         (
             "religion",
-            # a missing religion becomes "Other" (a known bug, kept for now)
-            {"relig": [1, 2, 3, 4, 5, 11, 6, None]},
+            # other listed religions are "Other", but a missing one stays missing
+            {"relig": [1, 2, 3, 4, 5, 11, 6, 13, None]},
             [
                 "Protestant",
                 "Catholic",
@@ -74,6 +74,7 @@ def raw_gss(columns: Mapping[str, Sequence[Any]]) -> pl.LazyFrame:
                 "Protestant",
                 "Other",
                 "Other",
+                None,
             ],
         ),
         (
