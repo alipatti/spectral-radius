@@ -199,16 +199,384 @@ The base model is now direction D's, written as a logit inclusive
 value, with five primitives
 ($Sigma_0$, $kappa_0$, $kappa$, $h$, $M$).
 
+Round 4 worked out the budget model's structure.
+
+- *Gaussian branch, then clusters.*
+  For any dense $M$ independent of $x_0$, the linear map
+  $x = A x_0$ with the closure's $alpha_k$ is an exact equilibrium,
+  so $M$ drops out (derived).
+  It is what the system reaches at large $h$.
+  Below a threshold $h_"cl" (c)$ it loses stability to clustering, for
+  every $c$ tested ($1.5$--$10$), and the population settles into one of
+  many multi-cluster equilibria with higher trace.
+  Multiplicity and hysteresis come from clustering and appear for every
+  $c$ tested;
+  the closure's $c > 8$ is only the condition for affine multiplicity.
+  Rising trace and the loaded-topic concentration hump survive, and are
+  robust across three kinds of $M$.
+- *Party readout.*
+  A noisy ordered logit on the fixed intrinsic ideology direction,
+  applied to current opinions, reproduces the fact-5 ordering with one
+  loading per topic, but only if sorting (readout precision) rises over
+  time.
+  Within-party above overall (fact 4) is impossible on the latent scale
+  and arises only through ordinal coding.
+- *Race.*
+  No latent shock gives a spike with flat trace (derived).
+  The flat observed trace comes from measurement:
+  7 of the 9 race items are binary, so their coded variance is pinned
+  while covariances track latent correlations.
+  A salience shock to the top mode, amplified near threshold, then
+  shows up almost entirely as concentration.
+- *Sociability* enters as time spent socializing, $kappa_i = kappa s_i$,
+  as one rung above the base model.
+  Dispersion in $s$ turns tipping into gradual detachment of the least
+  sociable extremes;
+  the GSS test needs a log-sd of $s$ of roughly 0.5--1.
+
 Next steps:
-+ check whether the budget model has core--periphery equilibria off the
-  Gaussian branch at $N = infinity$;
-+ choose a party readout and fit the within/between facts by topic,
-  including the spending switch;
-+ decide whether sociability enters as individual contact volume
-  $kappa_i$ (needed for the GSS test, since degree drops out under the
-  budget);
-+ race spike as an amplified shock to the top mode, and its reversion;
-+ run the GSS sociability test once the data is built.
++ the GSS checks the data now allows:
+  whether race reverted by 2022--24, its latent (probit) trace,
+  and the sociability test;
++ whether the paper's regime is above or below $h_"cl"$, and what the
+  cluster regime means (many clusters, not two);
++ whether rising sorting is an acceptable exogenous driver of the party
+  readout, or needs a source;
++ reconcile closure and particles on race reversion (random populations
+  lock in; quadrature nodes revert).
+
+== Round 4 (2026-10-30): structure, party, race, sociability
+
+Four tasks from the post-round-3 next steps.
+Base model throughout:
+$
+  dot(x)_i = kappa_0 (x_(i 0) - x_i)
+    + kappa (sum_j hat(w)_(i j) x_j - x_i),
+  quad hat(w)_(i j) prop m_(i j) e^(-norm(x_i - x_j)^2 \/ h),
+$
+with $kappa_0 = 1$ and $c = kappa \/ kappa_0$.
+In this kernel's units the closure is
+$
+  alpha_k (1 + c / (1 + 2 alpha_k^2 sigma_k^2 \/ h)) = 1,
+$
+with multiple roots iff $c > 8$.
+Scripts are in `/tmp/claude-1000/r4-*/`.
+
+=== Large-$N$ structure
+
+Verdict: no core--periphery at $N = infinity$ with identical agents,
+but a band of clustered equilibria with wide hysteresis.
+
+*Derived.*
+
++ *$M$ drops out.*
+  For any dense row-stochastic $M$ built independently of $x_0$,
+  $x = A x_0$ is an exact equilibrium with the same $alpha_k$ as complete
+  $M$:
+  every agent faces the same Gaussian population.
++ *No individual bistability on this branch.*
+  Given a Gaussian field each agent's best response is linear and
+  unique.
+  Under the budget even isolated extremes give all their attention to
+  their nearest others.
++ *Polynomial perturbations are exact eigenfunctions.*
+  With $rho_k = alpha_k^2 sigma_k^2 \/ (alpha_k^2 sigma_k^2 + h \/ 2)$,
+  a degree-$n$ perturbation of mode $k$ has eigenvalue
+  $
+    lambda_n = -1 - c (1 - rho) (1 - (n + 1) rho^n).
+  $
+  The case $n = 1$ is D's affine tipping.
+  Since $sup_n (1 - rho)(n + 1) rho^n -> 1 \/ e$ as $rho -> 1$,
+  the Gaussian branch is unstable at small $h$ whenever $c > e$.
++ *Local bulk analysis* (heuristic):
+  clustering at small $h$ iff $c > e \/ 2 approx 1.36$
+  (conjectured; the sociability task derived the same threshold
+  independently).
+  The update is an anchored blurring mean shift, which is why it
+  clusters.
+
+*Checked* (exact 1-d solver on a weighted 601-node grid;
+2-d on 1440 polar nodes; particles at $N = 400$, seeds 1--3, and
+$N = 1600$).
+
+#figure(
+  table(
+    columns: 4,
+    table.header([$c$], [$h_"cl"$], [*Closure trace at $h_"cl"$*],
+      [*Polynomial criterion*]),
+    [1.5], [.014], [.98], [never],
+    [2], [.079], [.84], [never],
+    [3], [.141], [.56], [sets in at .070],
+    [5], [.127], [.24], [exact],
+    [8], [.074], [.15], [exact],
+    [10], [.053], [.33], [exact],
+  ),
+  caption: [Clustering threshold of the Gaussian branch (1-d).],
+)
+
+- Above $h_"cl"$ the reached state is the Gaussian branch;
+  below it, one of many stable multi-cluster states, with cluster
+  spacing about $2.6 sqrt(h)$ (conjectured).
+  At $c = 3$, $h = 0.149$ the exact trace is 0.83 against the closure's
+  0.54.
+- Hysteresis is wider than the closure predicts and appears at
+  $c = 3$ and 8, not only above 8.
+  At $c = 8$, $h = 0.104$ the trace is 0.024 sweeping down and 0.85
+  sweeping up;
+  at $c = 12$ clusters persist up to $h approx 0.4$--$0.9$.
+- Finite $N$ departs from the Gaussian branch at a larger $h$:
+  extreme agents seed clusters.
+- 2-d loaded topic ($c = 3$, intrinsic share 0.70):
+  the share hump survives (peak 0.93 at $h = 0.24$ against the closure's
+  0.90); the trace rises monotonically.
+- Non-complete $M$ (ring, four blocks, and a location correlated 0.5
+  with the loaded axis):
+  with $M$ independent of $x_0$ the closure holds above $h_"cl"$ and
+  rising trace, hump and hysteresis are all robust.
+  Only $M$ correlated with $x_0$ changes things qualitatively:
+  the $h -> infinity$ baseline rises (trace 0.20, share 0.90) and the
+  hump becomes a plateau.
+
+Proposition-ready claim:
+for $x_0 tilde N(0, Sigma)$ and dense $M$ independent of $x_0$,
+$x = A x_0$ is an equilibrium for every $M$, unstable whenever
+$max_n lambda_n > 0$ (derived);
+below $h_"cl" (c)$ the reached state is one of a band of clustered
+equilibria with trace at least the closure's (checked).
+
+=== Party readout
+
+Verdict: a one-line readout works, but the between/within split needs
+sorting to rise over time.
+
+*Readout.*
+Party $in {D, I, R}$ is an ordered logit of $theta' x_i + s epsilon_i$
+with cutpoints $plus.minus tau$ (about 35% independents, since the
+paper's coding puts leaners with independents).
+The direction $theta$ is the top eigenvector of $Sigma_0$, fixed in
+time, applied to _current_ opinions $x$ because party ID is endogenous
+to opinions.
+The decomposition follows `spectral.py`:
+$rho_w = sum_g p_g lambda_1 (Sigma_g)$, $rho_b = rho - rho_w$.
+
+*Derived.*
+
++ *Rank-one downdate.*
+  With $x$ Gaussian,
+  $Sigma_g = Sigma - r_g (Sigma theta)(Sigma theta)' \/ theta' Sigma theta$,
+  so for each topic only its loading on the readout score and the
+  sorting $r_g$ matter.
++ *Within never exceeds overall on the latent scale*
+  (log-concavity and Brascamp--Lieb give $r_g >= 0$).
++ *The direction is fixed in time*:
+  $A$ shares the eigenbasis of $Sigma_0$.
++ *Uniform scaling carries no information*:
+  if contact falls and the readout is fixed, the between share of the
+  change equals the between share of the level.
++ *Sorting alone* moves within into between one for one.
+
+*Checked* (closure plus Monte Carlo; six topics, 21 items;
+loadings on a common ideology factor:
+race 0.75, welfare 0.70, spending 0.45, affirmative action 0.30,
+police 0.25, speech 0.15).
+
+#figure(
+  table(
+    columns: 4,
+    table.header([*Topic*], [*Contact only*], [*Contact + sorting*],
+      [*Selectivity*]),
+    [race], [.54], [1.82], [.67],
+    [welfare], [.47], [1.57], [.66],
+    [spending], [.35], [1.16], [.56],
+    [aff. action], [.14], [.45], [.33],
+    [police], [.10], [.33], [.26],
+    [speech], [.05], [.18], [.13],
+  ),
+  caption: [
+    Between-party share of the change in spectral radius.
+    Contact falls from $c = 0.6$ to 0.35 (about 1.3$times$ growth);
+    sorting is readout noise $s$ falling from 1.5 to 0.3.
+    Shares above 1 mean within-party polarization fell.
+  ],
+)
+
+- One loading per topic reproduces the fact-5 ordering
+  (race and welfare between, the rest within) once sorting rises.
+  Endogenous sorting from falling contact is negligible
+  ($eta^2$ 0.62 to 0.64).
+- Readout noise matters a lot ($eta^2$ is 0.77 at $s = 0.1$ and 0.07 at
+  $s = 2$), so $s$ must be pinned from data, e.g. the GSS
+  ideology--party correlation by year.
+- *Fact 4 under ordinal coding.*
+  With binary items cut asymmetrically, the party whose mean sits near
+  a cutpoint gets _higher_ variance than the population
+  (affirmative action: one party at 1.23 times overall, weighted
+  $rho_w \/ rho = 1.01$).
+  Which party depends on the direction of skew.
+- *Spending switch.*
+  Rising sorting alone moves a topic shock from 0.17--0.24 between to
+  0.37--0.51 between: not a switch.
+  It needs a shock on the partisan component in 2020 (the topic's
+  loading, or the common factor).
+  A shock to the common ideology factor raises every topic and race's
+  radius by 1.6$times$:
+  a candidate single 2020 shock behind both the race spike and the
+  spending bump (conjectured).
+- The direction is well estimated at finite $N$ while the eigengap is
+  large (cosine 0.994 at $N = 200$) but rotates under large topic
+  shocks.
+- Caveat: with 21 items at $h = 2$ the closure fails
+  (simulated trace 0.06--0.12 against 0.023):
+  the mean-field limit needs $h$ growing with the number of items.
+
+=== Race spike as an amplified shock
+
+Verdict: in latent opinions, no natural shock gives a concentration
+spike with flat trace;
+with the paper's item coding it does.
+
+*Model.*
+In the closure the modes decouple exactly:
+$
+  dot(alpha)_k = 1 - alpha_k - (c alpha_k) / (1 + z_k alpha_k^2),
+  quad z_k = 2 sigma_k^2 \/ h,
+$
+so a shock confined to one mode moves only that mode.
+The bistable window in $z$ is $(31.25, 32)$ at $c = 9$ and
+$(59.7, 82.3)$ at $c = 16$.
+Shock: the top mode's intrinsic variance rises 15% for three time units.
+Readout: latent plus unit probit noise, fixed cutpoints, coded on
+$[-1, 1]$ as in the paper.
+
+*No-go* (derived).
+For a top-mode-only shock with latent share $p$, the trace's part of
+the log spectral-radius change is at least $p$ regardless of
+amplification.
+A trace-preserving rotation keeps the latent trace flat only if all
+modes respond equally, which means no amplification.
+
+*Measurement* (checked).
+Seven of the nine race items are binary;
+their coded variance is $1 - "mean"^2$ whatever the latent dispersion,
+while their covariances track latent correlations.
+With the race item formats the share responds 12--40 times more than
+the trace (4--7 times if all items were Likert).
+
+#figure(
+  table(
+    columns: 4,
+    table.header([$c$], [$z \/ z^*$], [*Latent trace, share*],
+      [*Observed trace, share*]),
+    [4], [0.5], [$times 1.16$, .60 $->$ .65], [$times 1.006$, .23 $->$ .26],
+    [7], [0.97], [$times 2.39$, .81 $->$ .92], [$times 1.033$, .24 $->$ .35],
+    [14], [0.97], [$times 11.2$, .74 $->$ .98],
+    [$times 1.084$, .24 $->$ .51, no reversion],
+  ),
+  caption: [
+    Response at the end of the shock (closure).
+    $z^*$ is the up-fold for $c > 8$, or the point of maximum elasticity
+    otherwise.
+  ],
+)
+
+*Reversion.*
+In the closure, amplification and slow decay are the same quantity:
+both are $1 \/ F_alpha$ with
+$F_alpha = 1 + c (1 - z alpha^2) \/ (1 + z alpha^2)^2$,
+so spikes rise fast and decay slowly
+(at $c = 7$, elasticity 11 and relaxation time 3.1 against 0.125 for
+plain FJ).
+Outside the bistable window reversion is full;
+inside it a long enough shock tips the mode permanently.
+But random finite populations lock in after the shock in every run
+(9-d at $N = 800$ and 1600; 1-d random samples at $N = 3200$),
+while 1-d quadrature nodes revert as the closure says.
+Likely tail agents seeding clusters (see _Large-$N$ structure_);
+whether lock-in survives at $N = infinity$ for random populations is
+open.
+
+*Background driver.*
+With $c$ falling slowly, the same shock is 4--5 times larger late in the
+sample ("why 2020").
+The cost is a visible accelerating pre-trend in the observed share
+before the shock (0.24 to 0.35 on one path), which conflicts with a
+flat series unless it is within noise.
+
+*Rejection.*
+The model is rejected by a large spike that also decays fast
+(amplification implies slow decay),
+or by a latent (probit) race trace that stays flat through 2020--22.
+A cheap check: other binary-heavy topics should also show
+share-dominated changes.
+Whether race reverted by 2022--24 was not checked.
+
+=== Sociability
+
+Verdict: sociability should enter as individual contact volume,
+as one rung above the base model ($s equiv 1$).
+
+*Model.*
+$
+  u_i = -kappa_0 / 2 norm(x_i - x_(i 0))^2
+        + tau_i (kappa h) / 2 log sum_j m_(i j) e^(-norm(x_i - x_j)^2 \/ h),
+$
+where $tau_i$ is time spent socializing (the number of conversations,
+each worth the inclusive value).
+The budget still holds per conversation, so degree stays irrelevant;
+the GSS SOC items measure frequency, which is $tau$.
+Write $s_i = tau_i \/ macron(tau)$, lognormal with mean 1 and
+independent of $x_0$.
+At steady state only $kappa_i \/ kappa_(0 i)$ matters, so heterogeneous
+stubbornness folds into $s_i$ (derived).
+
+*Closure.*
+The population becomes a scale mixture of Gaussians, so the exact
+closure is per type: $x (1 + c s) - c s thin m(x) = x_0$, with the mean
+field $m$ computed by quadrature (derived).
+A moment closure,
+$
+  alpha(s) = (1 + u) / (1 + u + c s),
+  quad u = 2 V \/ h,
+  quad V = sigma^2 EE_s (alpha(s)^2),
+$
+is within about 3% of particles for log-sd 0.5 and up to 10% off for
+log-sd 1 ($N = 1600$, seeds 1--3).
+
+*Calibration* (Gaussian closure; $kappa$ falls so that aggregate trace
+grows 1.3$times$).
+
+- Base-period $R_M + R_H <= 1.31$ needs a log-sd of $s$ of at least
+  about 0.5 under perfect measurement, or about 1 if the measured index
+  correlates 0.6 with true $log s$.
+  The model then predicts gaps of 30--80%;
+  raw gaps of 5--10% would reject proportional $kappa_i$.
+- The low bin is not flat ($g_L$ is 1.06--1.29), so the round-3 bound's
+  $g_L approx 1$ is too strict; calibrate with $g \/ g_L$ directly.
+- The ordering $R_H < R_M < 1$ and rising $R_H$ hold in every case.
+- *A new restriction* (derived, exact in the linear limit):
+  the cross-sectional elasticity of trace with respect to contact equals
+  the time-series elasticity with respect to mean contact,
+  $partial log alpha^2 \/ partial log s = -2 c s \/ (1 + c s)$.
+  With finite $h$ the time series is amplified,
+  so the ratio of the two measures how much the kernel matters.
+
+*Tipping with heterogeneity* (checked, $N = 800$ and 1600).
+There is no macroscopic fold.
+The least sociable extreme agents detach one by one,
+so the core--periphery picture reappears in the budget model through
+heterogeneity.
+$R_H$ is non-monotone in this regime, reversing the GSS test's
+prediction there,
+and hysteresis is total: the fragmented state is absorbing.
+
+*Alternatives.*
+Heterogeneous stubbornness is equivalent at steady state.
+Putting the anchor inside the budget saturates the anchor pull and has
+no closure (rejected).
+Leaving sociability out predicts $R equiv 1$, the null of the same
+test.
+Deferred: $m_(i j) prop s_j$, so that sociable people are also heard
+more.
 
 == Revisions after round 3 (2026-10-30)
 
