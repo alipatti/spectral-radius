@@ -7,11 +7,14 @@ from spectral_radius.surveys.schemas import (
     Responses,
     SurveyData,
 )
+from spectral_radius.surveys.source import CleanFrames, Source
 
 __all__ = [
     "DEMOGRAPHICS",
+    "CleanFrames",
     "Codebook",
     "Respondents",
     "Responses",
+    "Source",
     "SurveyData",
 ]
