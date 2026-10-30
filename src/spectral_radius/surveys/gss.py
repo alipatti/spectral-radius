@@ -126,11 +126,11 @@ DEMOGRAPHICS: dict[str, pl.Expr] = {
         .cast(schemas.WORKFORCE_STATUS)
     ),
     # https://gssdataexplorer.norc.org/variables/59/vshow
-    # TODO: the second branch should test `degree >= 3`, not `educ >= 3`
+    # `degree` codes 3 and 4 are bachelor's and graduate degrees
     "education": (
         pl.when(pl.col("degree") < 3)
         .then(pl.lit("No Bachelor's degree"))
-        .when(pl.col("educ") >= 3)
+        .when(pl.col("degree") >= 3)
         .then(pl.lit("Bachelor's degree or more"))
         .cast(schemas.EDUCATION)
     ),

@@ -114,10 +114,12 @@ def raw_gss(columns: Mapping[str, Sequence[Any]]) -> pl.LazyFrame:
         ),
         (
             "education",
-            # the bachelor's branch tests `educ` rather than `degree`
-            # (a known bug, kept for now)
-            {"degree": [0, 2, 3, 3, None], "educ": [16, 16, 16, 2, 16]},
-            [NO_BA, NO_BA, BA, None, BA],
+            # by highest degree alone, whatever the years of school (`educ`)
+            {
+                "degree": [0, 1, 2, 3, 4, 3, 2, None],
+                "educ": [16, 12, 16, 16, 20, 2, 18, 16],
+            },
+            [NO_BA, NO_BA, NO_BA, BA, BA, BA, NO_BA, None],
         ),
         (
             "self_or_parent_immigrant",
