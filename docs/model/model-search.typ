@@ -3,7 +3,7 @@
 
 = Model search
 A living document.
-Started 2026-10-16; last updated 2026-10-16.
+Started 2026-10-16; last updated 2026-10-30.
 Each round records what subagents tried and found.
 All numbers come from small simulations and are illustrative rather
 than robust.
@@ -24,11 +24,13 @@ The user steers between and during rounds.
 - Reports lead with the verdict and the model in equations, give
   numbers, and flag what is derived, checked by simulation, or
   conjectured.
+- Commit this document at least once per round, after its write-up.
 - Write-ups here are concise and readable top to bottom.
   Superseded findings stay in their round section;
   _Current status_ always reflects the latest view.
 - Scratch scripts from rounds 0--2 were not kept;
   every result they produced is recorded below.
+  Round 3 scripts are in `/tmp/claude-1000/r3-*/` and may not persist.
 
 == Criteria
 
@@ -145,12 +147,466 @@ $h$ can be pinned to a fixed ordered-probit scale;
 and groups do not emerge without a categorization step,
 while two-sidedness needs an outside force.
 
+Round 3 points to the attention budget (row normalization) as the
+base model.
+It is the only route to exact analytics:
+no saturating potential model closes on Gaussians (derived),
+and the potential model's large-$N$ limit is a core of consensus plus
+a periphery of detached extremes, with a band of equilibria rather than
+a formula.
+The budget also removes majority absorption, which makes emergent
+groups balanced.
+The budget model is still gradient play of a standard utility
+(a logit inclusive value), but not a potential game.
+The full candidate model is written out at the end of round 3.
+Other findings:
+
+- The isotropic concentration spike is a finite-$N$ artifact
+  (excess shrinks like $N^(-1\/2)$, no pitchfork).
+  A race-style spike needs a factor loading or a shock to the top mode,
+  and the share peak comes with a rising trace, not a flat one.
+- Two balanced, stable, emergent groups (0.53/0.47 in every seed) come
+  from learned categories, a pivotal (Duverger) joining rule, and the
+  budget with a same-category tie bonus.
+  Groups differ on loaded topics; with moderate loading within-group
+  variance on unloaded topics matches overall, as in the GSS.
+- The GSS sociability test is feasible and sharp:
+  1.3$times$ trace growth needs base-period high- and middle-sociability
+  traces summing to at most 1.31 times the low tercile's.
+  The data is not cached locally, so nothing is checked yet.
+
+Decisions for the user:
++ adopt the attention budget as the base model and give up the
+  potential;
++ whether three pieces for groups (categories, pivotal joining, tie
+  bonus) is parsimonious enough.
+
 Next steps:
-+ an exact or better closure in the transition regime;
-+ replicate the symmetry-breaking spike across seeds;
-+ attention budget and a Duverger-type force for emergent two-sided
-  groups;
-+ the GSS sociability test of the trace bound.
++ rebuild the synthesis model on the budget, with endogenous ties, and
+  check whether it too has core--periphery equilibria at
+  $N = infinity$;
++ fold the group model into it and fit the within/between facts by
+  topic, including the spending switch;
++ race spike as an amplified shock to the top mode, and its reversion;
++ run the GSS sociability test once the data is built.
+
+== Round 3 (2026-10-16): closure, spike, groups, GSS test
+
+Four tasks from round 2's next steps:
+a large-$N$ closure of the synthesis model in the transition regime,
+replicating the isotropic concentration spike,
+emergent two-sided groups,
+and a design for the GSS sociability test.
+Units: $kappa_0 = 1$, unit intrinsic variance per axis,
+$c = kappa lambda \/ kappa_0$.
+
+=== Large-$N$ closure
+
+Verdict:
+the potential model's $N -> infinity$ limit is solvable numerically
+but not in closed form, and no model of its kind can be.
+
+*Exact fixed point* (derived).
+With $mu$ the push-forward of $N(0, Sigma_0)$ under the stationary map
+$F$, each agent's position $F(x_0)$ is a stationary point of
+$
+  psi(x; x_0) = 1 / 2 norm(x - x_0)^2 + c (U * mu)(x),
+  quad U(z) = -h / 4 e^(-2 norm(z)^2 \/ h),
+$
+(the $a_0$ term adds a second kernel and was not explored).
+Placing agents on deterministic quadrature nodes of $N(0, Sigma_0)$
+gives a deterministic particle system;
+in 1-d, 400 and 800 nodes agree to within 0.01 in trace.
+Tensor grids truncate the tails and miss the transition;
+polar or radial nodes are needed.
+
+*Core and periphery* (checked).
+The stationary state is a consensus core
+($norm(x_0) < a$, compressed) plus a periphery of extreme agents who
+stay near their intrinsic positions, so $F$ jumps at the core edge.
+Each agent is individually bistable, so there is a continuum of
+equilibria indexed by $a$:
+the down sweep in $h$ keeps the largest core, the up sweep the
+smallest.
+Hysteresis is real at $N = infinity$ and wide
+(at $c = 8$, from $h approx 0.18$ to beyond 3),
+but it is built from per-agent folds, not a macroscopic saddle-node;
+no macroscopic fold appears for $c in [4, 12]$.
+The finite-$N$ jumps of round 2 are single tail agents detaching.
+
+*Gaussian-core closure* (derived; checked).
+Treat the core as $N(0, s^2 I)$ with mass $m$ and ignore the
+periphery's field.
+With $g = h \/ 2$ and $G = g + 2 s^2$, each agent solves
+$
+  x_0 = x (1 + c m (g \/ G)^(d \/ 2 + 1) e^(-norm(x)^2 \/ G)),
+$
+with $m$ and $s^2$ set self-consistently.
+Agents are bistable iff
+$
+  c m (g \/ G)^(d \/ 2 + 1) > e^(3 \/ 2) \/ 2 approx 2.24
+$
+in any dimension, replacing the round-2 condition $c > 5.09$.
+The closure matches the down branch to 0.01--0.02 and underestimates the
+up branch.
+
+#figure(
+  table(
+    columns: 5,
+    table.header([$h$], [*Exact*], [*Gaussian core*], [*Round-2
+      closure*], [*$N = 400$, 3 seeds*]),
+    [3.0], [.014 / .057], [.014 / .057], [.013], [up .03--.11],
+    [1.17], [.042 / .422], [.042 / .220], [.015], [.02--.10 / .34--.37],
+    [0.73], [.160 / .669], [.160 / .559], [.017], [.14--.20 / .38--.73],
+    [0.46], [.441 / .833], [.441 / .781], [.023], [],
+    [0.23], [.889 / .933], [.882 / .923], [.839], [],
+  ),
+  caption: [
+    Trace relative to intrinsic, down / up sweep, 1-d, $c = 8$.
+    Exact is 800 quantile nodes.
+  ],
+)
+
+In 2-d ($c = 8$, 960 polar nodes) the loaded topic
+($Sigma_0 = op("diag")(1.4, 0.6)$, share 0.70) has a genuine
+concentration hump at $N = infinity$ (share 0.90 at $h approx 1.08$),
+while the isotropic topic's share stays at 0.500.
+
+*No-go for exact closure with a potential* (derived).
+With a translation-invariant pair potential the force on an agent is
+$-(f * N)(x)$ with $f(z) = w(z) z$;
+linearity in $x$ forces $w$ constant, which is linear FJ.
+Normalizing by a population mean of $K$ keeps the potential but only
+rescales $c$;
+symmetrized row normalization keeps a potential but adds a non-Gaussian
+factor.
+Direction D's attention budget, which does close exactly, is gradient
+play of
+$
+  u_i = -kappa_0 / 2 norm(x_i - theta_i)^2
+        + kappa h' log sum_j m_(i j) e^(-norm(x_i - x_j)^2 \/ h'),
+$
+a logit inclusive value:
+a standard utility, but not a potential game.
+Unchecked: whether D's model also has core--periphery equilibria
+off the Gaussian branch.
+
+=== Symmetry-breaking spike
+
+Verdict: a finite-$N$ artifact, not symmetry breaking (checked).
+Same synthesis model on a complete meeting graph, $d = 4$,
+quasi-static sweeps of $h$ from 8 to 0.5 and back,
+20 seeds at $N = 200, 400$ and 3 seeds at $N = 800, 1600$.
+Configurations: no endogenous ties ($lambda = 0$),
+below threshold ($c = 3$) and above ($c = 8$).
+
+- *It replicates at small $N$.*
+  At $N = 400$ every seed spikes;
+  the excess of peak share over the sample share of $x_0$ (0.285) is
+  0.10 below threshold and 0.29 [0.15, 0.40] above it.
+- *It shrinks like $N^(-1\/2)$.*
+  Above threshold the excess is 0.40, 0.29, 0.21, 0.16 at
+  $N = 200, 400, 800, 1600$.
+- *It is driven by escapees.*
+  At the peak one to five extreme agents have left the compressed
+  core and carry 55--78% of the top-axis variance
+  (the core's trace is 0.03--0.09 of intrinsic).
+  This is the closure's core--periphery picture at finite $N$.
+- *Exactly isotropic $x_0$* (orbits of the signed cyclic group,
+  covariance exactly $c I$, with $10^(-6)$ kicks) gives share 0.250 in
+  all 36 runs.
+- *No pitchfork.*
+  On the symmetric branch the isotropic Hessian mode always softens
+  first and the anisotropic modes stay stiffer
+  (checked at $N = 192, 384$; the $N -> infinity$ claim is
+  conjectured from scaling and $O(d)$ equivariance).
+- *Loaded topic* (share 0.45):
+  excess 0.35, 0.31, 0.32, 0.27 at $N = 200$ to 1600, so the hump is a
+  population effect.
+  At $N = 200$ the unloaded spike is as large as the loaded one,
+  which is why one seed looked convincing in round 2.
+
+For race:
+spontaneous symmetry breaking cannot replace a factor loading or a
+shock to the top mode.
+Nor does the spike come with a flat trace:
+at the share peak the trace is already 2--6 times its pre-transition
+level.
+A concentration spike with flat trace needs a shock confined to the top
+mode or a measurement effect;
+falling $h$ cannot produce it.
+
+=== Emergent two-sided groups
+
+Verdict: learned categories, a pivotal joining rule and the attention
+budget with a same-category tie bonus give exactly two balanced groups
+in every seed, with no party label (checked;
+$N = 400$, 9 items in three topics, 8 available categories, random
+initial memberships, 10 seeds).
+
+*Model.*
+Opinions under the budget,
+$
+  dot(x)_i = kappa_0 (x_(i 0) - x_i)
+    + kappa ((sum_j W_(i j) x_j) / (sum_j W_(i j)) - x_i),
+  quad W_(i j) = m_(i j) K_(i j) (1 + gamma r_i dot r_j),
+$
+where $r_i$ is $i$'s soft membership over categories
+(the synthesis model's two-kernel weight slots into $W$).
+A category's platform is its members' mean $mu_k$ and its share $s_k$;
+it wins with probability $p = op("softmax")(tau s)$.
+With $v_(i k) = -1 \/ 2 norm(x_i - mu_k)^2$ and
+$macron(v)_i = sum_l p_l v_(i l)$, memberships adjust as
+$
+  dot(r)_(i k) = epsilon (op("softmax")_k (beta K p_k (v_(i k) - macron(v)_i))
+                 - r_(i k)).
+$
+The payoff is Myerson--Weber vote value with pivot probabilities
+$P_(k l) prop p_k p_l$ (derived; the reduced form for Poisson-game
+pivot probabilities is conjectured).
+With two live parties it equals sincere voting, so there is no
+bandwagon;
+balance comes from 2-means geometry (the boundary sits at the midpoint
+of the two means), not from median-voter logic (derived).
+Neither the budget nor the membership game is a potential game,
+so convergence is checked only by simulation.
+
+*Attention budget.*
+Round 2's majority absorption came mostly from the mixture prior
+$log pi_k$ in EM categorization (bigger categories judged more
+likely), amplified by the tie bonus when total contact is not
+budgeted:
+with $K = 2$ and the prior, the top group's share is 0.82 without the
+budget and 0.57 with it;
+without the prior it is 0.51--0.54 either way.
+Without the budget a minority member's total pull is smaller,
+$prop 1 + gamma pi$ (argued).
+The budget does not stop the cascade to 8 groups as precision rises:
+that cascade is deterministic annealing on the categorization side.
+
+*Duverger force.*
+
+#figure(
+  table(
+    columns: 3,
+    table.header([*Case*], [*Groups*], [*Top share*]),
+    [pivotal + budget + bonus, 5 of 6 cells], [2 (all seeds)],
+    [0.53 (0.50--0.57)],
+
+    [same, 4000 steps or $N = 800$], [2], [0.52--0.53],
+    [same, near-deterministic elections ($tau = 40$)], [sometimes 3],
+    [third up to 0.28],
+
+    [no tie bonus], [2 plus centrist remnant 0.01--0.09], [],
+    [no budget, fixed total contact], [2.3 on average], [third up to 0.21],
+    [expressive + pivotal, skewed factor], [5--8], [ENP 3.2--3.5],
+    [pure pivotal, skewed factor], [2], [0.60 (0.53--0.67)],
+  ),
+  caption: [Emergent groups across 10 seeds ($tau = 10$--20 unless noted).],
+)
+
+*Topics.*
+With a strong loading on topic 1 the between-group share is 0.57 on
+topic 1 and 0.11 on the others,
+but the within-group $lambda_1$ on topic 1 is only 0.28 of overall,
+too extreme for the GSS
+(mostly mechanical: splitting a normal axis removes $2 \/ pi$ of its
+variance).
+A weaker loading gives a between-share of 0.38 and within/overall 0.42
+on the loaded topic, and 0.01 and 1.03 on the unloaded one,
+matching the GSS fact that within-party disagreement is comparable to
+overall.
+So the "between for race and welfare, within for the rest" split maps
+onto factor loading.
+
+*Micro story.*
+People sort into camps whose platform is their members' average.
+A camp is worth joining only insofar as it can win, so support drains
+from camps that cannot, and two survive (Duverger; Cox 1997).
+Attention is a fixed budget, tilted toward fellow members,
+so camps reinforce themselves without a larger camp swallowing a
+smaller one.
+An entry cost (Palfrey; citizen-candidate) would set a number of
+groups that scales with the cost rather than exactly two (untested).
+Literature to verify:
+Myerson--Weber (1993), Palfrey (1989), Osborne--Slivinski (1996),
+Besley--Coate (1997), Fryer--Jackson (2008), Shayo (2009).
+
+=== GSS sociability test
+
+Verdict: feasible and likely decisive, but unchecked:
+the GSS data is not built locally.
+Item years and coverage below are from memory and need verifying.
+
+*Measures and bins.*
+Primary: the within-year weighted rank of the mean of reversed
+`SOCOMMUN` (neighbors, closest to cross-cutting geographic contact
+$m_(i j)$) and `SOCFREND`, cut into within-year terciles
+(ties broken at random).
+`SOCREL` separately (non-elective, so less reverse causality, but
+relatives share $x_0$);
+`SOCBAR` as robustness only.
+`NUMGIVEN` (1985, 2004) is unusable as a series.
+
+*Statistic.*
+For topic $k$, bin $b$ and five-year period $p$, let
+$op("tr")_(b p k)$ be the within-cell trace (paper coding, `WTSSPS`,
+pairwise-complete) and
+$R_(b p k) = op("tr")_(b p k) \/ op("tr")_(L p k)$.
+Mean-field FJ gives $x_i approx s_i x_(i 0)$ with
+$s_i = 1 \/ (1 + c d_i)$, which predicts (derived, given $x_0$
+independent of sociability):
+
++ ordering $R_H <= R_M <= 1$ in every period, never above 1;
++ $R_H$ rises over time;
++ the low bin rises less than the high bin (not exactly flat:
+  the low tercile is itself compressed; synthetic data gives +14%);
++ in the linear limit $R_H$ follows a common path across topics.
+
+*Variance regression.*
+At the respondent-item level, with
+$y_(i j) = (x_(i j) - hat(mu)_(j p))^2 \/ hat(sigma)_(j p)^2$
+and $r_i$ the sociability rank,
+$
+  y_(i j) = alpha_(j p) + beta_p (r_i - 1 \/ 2) + Z_i' gamma_p
+            + epsilon_(i j),
+$
+weighted, clustered by respondent (or design bootstrap).
+Predictions: $beta_p < 0$ and rising toward 0 over time;
+PPML gives $beta_p approx log(s_H^2 \/ s_L^2)$.
+
+*Calibration* (derived; an accounting identity).
+With equal bin means and terciles, the pooled trace is the average of
+bin traces, so growth $g$ relative to low-bin growth $g_L$ satisfies
+$
+  g / g_L = macron(R)_"end" / macron(R)_0 <= 1 / macron(R)_0,
+  quad macron(R) = (1 + R_M + R_H) / 3.
+$
+With $g_L approx 1$, growth of 1.2, 1.3, 1.5 needs base-period
+$R_M + R_H <= 1.5, 1.31, 1.0$:
+a large gap, easy to detect or reject.
+The agent's prior is that raw gaps are 5--10%, which would rule out
+falling contact as the sole driver (conjectured).
+
+*Threats.*
+Sociability correlated with intrinsic positions
+(DFL-reweight bins to base-period covariates, or residualize items on
+demographics);
+composition drift (within-year ranks);
+reverse causality, since extremists withdrawing gives the same sign
+(identify from the time interaction, `SOCREL`, a placebo on the
+demographically predicted component, and the 2006--14 panels if they
+carry the SOC items);
+ceilings (use the trace, not the share);
+COVID-era mode change (show with and without 2020--21).
+
+*Falsification.*
+Falling contact is rejected if the base gap is absent or too small for
+the observed growth, if $beta_p$ is flat while the trace rises,
+if the low bin rises as fast as the high bin, if $R > 1$,
+or if mean contact does not fall.
+Contact and rising selectivity both close the gap;
+they differ in that contact closes it only on measures whose levels
+fell, along a common path across topics, and within parties,
+whereas selectivity closes it first on high-variance topics and
+through between-cluster variance (conjectured).
+
+*To compute once data is built*
+(script at `/tmp/claude-1000/r3-gss/sociability_test.py`):
+item availability by year (critical: whether SOC items were asked in
+2021--24);
+$g_k$ from 1990--94 to 2020--24 and to 2015--19;
+base-period $R_M$, $R_H$ and $g_(L k)$ per topic.
+
+=== Candidate model after round 3
+
+A snapshot assembled from the subsections above
+(recorded 2026-10-30; not yet simulated as one model).
+Agents choose opinions $x_i$ to maximize
+$
+  u_i = underbrace(-kappa_0 / 2 norm(x_i - x_(i 0))^2, "anchor")
+        + underbrace((kappa h) / 2 log sum_j, "attention budget")
+          (underbrace(m_(i j), "opportunity")
+           underbrace(e^(-norm(x_i - x_j)^2 \/ h), "homophily")
+           underbrace((1 + gamma r_i dot r_j), "group bonus")).
+$
+
+- *Anchor.*
+  Pull toward the intrinsic position $x_(i 0)$ with stubbornness
+  $kappa_0$.
+  Topic heterogeneity comes from the factor structure of $x_(i 0)$.
+- *Attention budget.*
+  The log of a sum is a logit inclusive value:
+  each agent spreads unit attention over contacts in proportion to
+  their weights, with susceptibility $kappa$.
+  It keeps effects $O(1)$ as $N -> infinity$, stops larger groups from
+  pulling harder, and gives the exact closure.
+- *Opportunity.*
+  Who can be met at all: geography plus an online share $omega$.
+- *Homophily.*
+  Attention falls with opinion distance at selectivity $1 \/ h$,
+  read as the probability that a contact's view is relevant.
+  This couples opinions to the network.
+- *Group bonus.*
+  Extra attention to members of one's own category, with soft
+  memberships $r_i$ and strength $gamma$.
+
+Gradient play gives
+$
+  dot(x)_i = kappa_0 (x_(i 0) - x_i)
+    + kappa ((sum_j W_(i j) x_j) / (sum_j W_(i j)) - x_i),
+$
+where $W_(i j)$ is the product of the three weights;
+the attention shares $W_(i j) \/ sum_k W_(i k)$ are the network.
+
+Groups are learned, not given.
+A category's platform $mu_k$ is its members' mean and its share is
+$s_k$.
+Memberships follow a logit best response (precision $beta$) to the
+payoff
+$
+  underbrace(p_k, "win prob.") thick
+  underbrace((v_(i k) - macron(v)_i), "gain").
+$
+
+- *Win probability.*
+  A noisy plurality election, $p = op("softmax")(tau s)$:
+  categories that cannot win are worth little, so support drains from
+  them and two survive (Duverger).
+- *Gain.*
+  How much better platform $k$ is for $i$ than the expected winner,
+  with $v_(i k) = -1 \/ 2 norm(x_i - mu_k)^2$ and
+  $macron(v)_i = sum_l p_l v_(i l)$.
+  With two live groups this reduces to sincere voting, and balance
+  comes from the boundary sitting midway between the two platforms.
+
+*Ladder.*
+$h -> infinity$ with $gamma = 0$ is FJ (DeMarzo--Vayanos--Zwiebel) on
+row-normalized $m$;
+fixed opinions give logit latent-space homophily;
+$gamma = 0$ with Gaussian $x_0$ has direction D's exact mode-by-mode
+closure, with tipping and hysteresis.
+Drivers are contact ($kappa$, $m$), selectivity ($h$), online mixing
+($omega$), and shocks to $x_0$.
+Costs: no potential function (convergence checked only by
+simulation), and three pieces for groups.
+
+*Swaps and alternatives* considered at this point:
+
+- keep the potential model (Welsch cost, ties in the same utility):
+  gains a Lyapunov function, loses closed forms and group balance;
+- an attention floor $m_(i j) (a_0 + K_(i j))$:
+  cross-cutting contact that ignores opinions;
+- slow ties that relax toward the logit target, for network dynamics;
+- an entry cost instead of the pivotal rule
+  (number of groups scales with the cost);
+  no tie bonus (leaves a centrist remnant);
+  or two imposed parties as a benchmark;
+- topic heterogeneity from salience or identity loading instead of the
+  factor structure of $x_0$;
+- noise, for a stationary distribution and early-warning variance;
+- drifting $x_0$ or cohort replacement to escape the trace bound
+  (exogenous).
 
 == Round 2 (2026-10-16): synthesis and open problems
 
