@@ -127,6 +127,14 @@ def test_build_writes_each_frame(tmp_path: Path):
         assert_frame_equal(written, getattr(data, member))
 
 
+def test_build_writes_declared_demographics(tmp_path: Path):
+    """Write which demographics each survey declares, one row per pair."""
+    build([FakeSource(tmp_path)], dest=tmp_path / "clean")
+
+    written = pl.read_parquet(tmp_path / "clean" / "demographics.parquet")
+    assert written.rows() == [("fake", "sex")]
+
+
 class OtherSource(FakeSource):
     name = "other"
     demographics = frozenset({"race"})

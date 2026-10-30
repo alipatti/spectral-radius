@@ -3,6 +3,7 @@
 from collections.abc import Sequence
 from pathlib import Path
 
+import polars as pl
 from loguru import logger
 
 from spectral_radius.surveys.gss import GSS
@@ -39,6 +40,17 @@ def build(
 
     for member in MEMBERS:
         getattr(data, member).write_parquet(dest / f"{member}.parquet")
+
+    # the demographics each survey declares, so a survey's all-null columns
+    # read as "not asked" rather than "unanswered" outside python too
+    pl.DataFrame(
+        [
+            {"survey": survey, "demographic": demographic}
+            for survey, demographics in data.demographics.items()
+            for demographic in sorted(demographics)
+        ],
+        schema={"survey": pl.String, "demographic": pl.String},
+    ).write_parquet(dest / "demographics.parquet")
 
     logger.info("Wrote clean data to {}", dest)
     return data
