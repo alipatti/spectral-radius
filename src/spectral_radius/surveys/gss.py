@@ -330,6 +330,7 @@ class GSS(Source):
     """The cumulative GSS file, 1972 onward."""
 
     name = "gss"
+    demographics = frozenset(DEMOGRAPHICS)
 
     def __init__(
         self,

@@ -10,7 +10,7 @@ from plotnine_theme import theme_ali
 from polars import selectors as cs
 from polars_utils.stats import mean
 
-from spectral_radius.analysis import analysis_frame
+from spectral_radius.analysis import analysis_frame, survey_data
 from spectral_radius.constants import FIGURES, START_YEAR
 from spectral_radius.plot_helpers import (
     CATEGORY_WRAP,
@@ -154,6 +154,10 @@ def polarization_over_time_data(
     year_bin_width: int | None = 5,
     survey: str = "gss",
 ):
+    # undeclared demographics are null throughout, so grouping by one is an error
+    if by:
+        survey_data().require_demographic(survey, by)
+
     responses = analysis_frame(survey).with_columns(binned_year(year_bin_width))
     categories = QUESTION_SETS[survey]
 
@@ -317,6 +321,9 @@ def group_decomp_figure(by: str = "race", survey: str = "gss") -> pn.ggplot:
 
 
 def main(survey: str = "gss"):
+    provided = survey_data().demographics[survey]
+    demographics = [d for d in DEMOGRAPHICS if d in provided]
+
     all_figures = (
         {
             "pooled/pooled": polarization_figure(survey),
@@ -324,11 +331,11 @@ def main(survey: str = "gss"):
         }
         | {
             f"decompositions/{group}": group_decomp_figure(group, survey)
-            for group in DEMOGRAPHICS
+            for group in demographics
         }
         | {
             f"by_group/{group}": subgroup_polarization_figure(group, survey)
-            for group in DEMOGRAPHICS
+            for group in demographics
         }
     )
 

@@ -126,13 +126,33 @@ def _require_keys_in(
         raise ValueError(f"{message} ({len(orphans)} keys, e.g. {orphans.row(0)})")
 
 
+def _require_declared(
+    respondents: pl.DataFrame,
+    demographics: Mapping[str, frozenset[str]],
+) -> None:
+    for survey, declared in demographics.items():
+        if unknown := declared.difference(DEMOGRAPHICS):
+            raise ValueError(f"Survey {survey!r} declares non-demographics {unknown}")
+
+    surveys = set(respondents["survey"].cast(pl.String).unique())
+
+    if undeclared := surveys.difference(demographics):
+        raise ValueError(f"Surveys {undeclared} don't declare their demographics")
+
+
 @dataclass(frozen=True)
 class SurveyData:
-    """Validated codebook, respondents, and responses of one or more surveys."""
+    """
+    Validated codebook, respondents, and responses of one or more surveys.
+
+    `demographics` maps each survey to the demographics it provides;
+    the others are null throughout its respondents.
+    """
 
     codebook: dy.DataFrame[Codebook]
     respondents: dy.DataFrame[Respondents]
     responses: dy.DataFrame[Responses]
+    demographics: Mapping[str, frozenset[str]]
 
     @classmethod
     def validate(
@@ -141,12 +161,14 @@ class SurveyData:
         codebook: pl.DataFrame | pl.LazyFrame,
         respondents: pl.DataFrame | pl.LazyFrame,
         responses: pl.DataFrame | pl.LazyFrame,
+        demographics: Mapping[str, frozenset[str]],
     ) -> Self:
         """Validate each frame against its schema and the keys across frames."""
         data = cls(
             codebook=Codebook.validate(codebook.lazy().collect()),
             respondents=Respondents.validate(respondents.lazy().collect()),
             responses=Responses.validate(responses.lazy().collect()),
+            demographics=MappingProxyType(dict(demographics)),
         )
 
         _require_keys_in(
@@ -161,6 +183,7 @@ class SurveyData:
             VARIABLE_KEY,
             "Responses to variables missing from Codebook",
         )
+        _require_declared(data.respondents, data.demographics)
 
         return data
 
@@ -172,4 +195,16 @@ class SurveyData:
             codebook=pl.concat(d.codebook for d in datas),
             respondents=pl.concat(d.respondents for d in datas),
             responses=pl.concat(d.responses for d in datas),
+            demographics={
+                survey: declared
+                for d in datas
+                for survey, declared in d.demographics.items()
+            },
         )
+
+    def require_demographic(self, survey: str, demographic: str) -> None:
+        """Raise unless `survey` provides `demographic`, e.g. before grouping by it."""
+        if demographic not in self.demographics[survey]:
+            raise ValueError(
+                f"Survey {survey!r} doesn't provide demographic {demographic!r}"
+            )

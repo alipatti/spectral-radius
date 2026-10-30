@@ -5,7 +5,7 @@ import polars as pl
 import pytest
 from polars.testing import assert_frame_equal, assert_series_equal
 
-from spectral_radius.surveys import Respondents
+from spectral_radius.surveys import DEMOGRAPHICS, GSS, Respondents
 from spectral_radius.surveys.gss import (
     QUESTIONS_SCHEMA,
     codebook,
@@ -219,3 +219,8 @@ def test_codebook_question_text_matches_differently_named_variables():
     result = codebook(raw, variables, published).collect()
 
     assert result["question"].to_list() == ["Respondent id", "Differences?", None]
+
+
+def test_declares_every_demographic():
+    """Declare all the shared demographics, since the GSS asks about each."""
+    assert GSS.demographics == DEMOGRAPHICS.keys()

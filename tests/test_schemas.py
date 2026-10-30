@@ -3,7 +3,7 @@ from typing import Any
 import polars as pl
 import pytest
 from dataframely.exc import SchemaError, ValidationError
-from helpers import codebook_rows, frame, survey_data
+from helpers import codebook_rows, declare_all, frame, survey_data
 
 from spectral_radius.surveys import (
     DEMOGRAPHICS,
@@ -97,6 +97,7 @@ def test_rejects_uncast_categories():
             codebook=frame(Codebook, [codebook_row()]),
             respondents=pl.DataFrame([RESPONDENT | {"sex": "Male"}], schema=schema),
             responses=frame(Responses, [RESPONSE]),
+            demographics=declare_all([RESPONDENT]),
         )
 
 
@@ -107,6 +108,7 @@ def test_rejects_response_from_unknown_respondent():
             codebook=frame(Codebook, [codebook_row()]),
             respondents=frame(Respondents, [RESPONDENT]),
             responses=frame(Responses, [RESPONSE | {"respondent": 2}]),
+            demographics=declare_all([RESPONDENT]),
         )
 
 
@@ -117,6 +119,7 @@ def test_rejects_response_to_unknown_variable():
             codebook=frame(Codebook, [codebook_row()]),
             respondents=frame(Respondents, [RESPONDENT]),
             responses=frame(Responses, [RESPONSE | {"variable": "other"}]),
+            demographics=declare_all([RESPONDENT]),
         )
 
 
@@ -139,3 +142,43 @@ def test_concat_rejects_overlapping_surveys():
 
     with pytest.raises(ValidationError, match="primary_key"):
         SurveyData.concat([data, data])
+
+
+def test_rejects_survey_without_declared_demographics():
+    """Require every survey of the respondents to declare its demographics."""
+    with pytest.raises(ValueError, match="don't declare"):
+        survey_data([RESPONDENT], [RESPONSE], demographics={})
+
+
+def test_rejects_declared_non_demographic():
+    """Reject a declaration naming a column that isn't a demographic."""
+    with pytest.raises(ValueError, match="non-demographics"):
+        survey_data(
+            [RESPONDENT], [RESPONSE], demographics={"fake": frozenset({"weight"})}
+        )
+
+
+def test_concat_keeps_each_surveys_demographics():
+    """Keep each survey's declared demographics when stacking."""
+    other = {"survey": "other"}
+    data = SurveyData.concat(
+        [
+            survey_data([RESPONDENT], [RESPONSE], {"fake": frozenset({"sex"})}),
+            survey_data(
+                [RESPONDENT | other],
+                [RESPONSE | other],
+                {"other": frozenset({"race"})},
+            ),
+        ]
+    )
+
+    assert data.demographics == {"fake": {"sex"}, "other": {"race"}}
+
+
+def test_require_demographic_rejects_undeclared():
+    """Refuse a demographic the survey doesn't provide, naming both."""
+    data = survey_data([RESPONDENT], [RESPONSE], {"fake": frozenset({"sex"})})
+    data.require_demographic("fake", "sex")
+
+    with pytest.raises(ValueError, match="'fake'.*'race'"):
+        data.require_demographic("fake", "race")
