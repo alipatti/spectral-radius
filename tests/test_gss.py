@@ -106,7 +106,7 @@ def raw_gss(columns: Mapping[str, Sequence[Any]]) -> pl.LazyFrame:
             [
                 "Employed",
                 "Employed",
-                "Unmployed",
+                "Unemployed",
                 "Out of labor force",
                 "Out of labor force",
                 None,

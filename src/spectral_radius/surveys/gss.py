@@ -115,12 +115,11 @@ DEMOGRAPHICS: dict[str, pl.Expr] = {
         .cast(schemas.POLITICAL_IDEOLOGY)
     ),
     # https://gssdataexplorer.norc.org/variables/3/vshow
-    # TODO: fix the "Unmployed" typo (in `schemas.WORKFORCE_STATUS` too)
     "workforce_status": (
         pl.when(_in("wrkstat", 1, 3))
         .then(pl.lit("Employed"))
         .when(pl.col("wrkstat") == 4)
-        .then(pl.lit("Unmployed"))
+        .then(pl.lit("Unemployed"))
         .when(_in("wrkstat", 5, 8))
         .then(pl.lit("Out of labor force"))
         .cast(schemas.WORKFORCE_STATUS)
