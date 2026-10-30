@@ -13,22 +13,28 @@ SOURCES: tuple[Source, ...] = (GSS(),)
 MEMBERS = ("codebook", "respondents", "responses")
 
 
-def load(sources: Sequence[Source] = SOURCES) -> SurveyData:
+def load(
+    sources: Sequence[Source] = SOURCES,
+    *,
+    refresh: bool = False,
+) -> SurveyData:
     """
-    Clean and validate the cached raw data of `sources`.
+    Clean and validate the raw data of `sources`, downloading it if not cached.
 
     Cleaning reruns every time (rather than being cached) so the result
     can never be stale with respect to the cleaning code.
     """
-    return SurveyData.concat(source.load() for source in sources)
+    return SurveyData.concat(source.load(refresh=refresh) for source in sources)
 
 
 def build(
     sources: Sequence[Source] = SOURCES,
     dest: Path = DATA_ROOT / "clean",
+    *,
+    refresh: bool = False,
 ) -> SurveyData:
-    """Load the data and write each frame to `dest` as parquet."""
-    data = load(sources)
+    """Load the data (redownloading it if `refresh`) and write each frame to `dest`."""
+    data = load(sources, refresh=refresh)
     dest.mkdir(parents=True, exist_ok=True)
 
     for member in MEMBERS:
