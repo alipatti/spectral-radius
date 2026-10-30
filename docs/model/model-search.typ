@@ -48,14 +48,23 @@ The model should
 + converge as $N -> infinity$ to a well-defined limit in which effects
   neither vanish nor explode
   (the `setup.typ` model's homophily is $O(1 \/ N)$);
-+ not bake in party: group or party structure, including two-sidedness,
-  should arise from the model.
++ treat party as descriptive:
+  a partition of model output used for decompositions, not an input to
+  the dynamics
+  (revised 2026-10-30; previously, party structure had to arise from
+  the model).
 
 Soft criteria:
 
 + is parsimonious: emergent properties should come from a few simple,
   understandable micro characteristics, not from added bells and
   whistles;
++ keeps meeting opportunities $M$ flexible:
+  $M$ is an exogenous primitive, possibly time-indexed ($M_t$), and
+  results should hold for broad classes of $M$
+  (geography, work, family, platforms)
+  rather than depend on one story such as online mixing,
+  since many $M$ can produce the same phenomenon;
 + reduces to Friedkin--Johnsen in a parameter limit, and ideally to a
   standard homophilous network-formation model when opinions are fixed;
 + connects to existing economics literature
@@ -66,7 +75,7 @@ Soft criteria:
 + is robust to ordinal measurement
   (predictions survive monotone recoding of survey items);
 + has a counterfactual lever with a policy reading,
-  e.g. online contact or platform design;
+  e.g. platform design (selectivity);
 + yields testable comparative statics beyond fitting the facts.
 
 == Stylized facts
@@ -88,6 +97,10 @@ covariance computed within topic across its items):
   within-party change drives affirmative action, speech and police.
 + Demographic groups (race, sex, geography, education, religion)
   explain little, except education and religion for abortion.
+
+The model meets facts 4 and 5 through a party readout of its output
+(hard criterion 8);
+the readout should match how party ID sorts on opinions in the GSS.
 
 The model in `setup.typ` gets the first-order fact backwards:
 it produces consensus (total variance falls to about 5%) with
@@ -175,20 +188,117 @@ Other findings:
   traces summing to at most 1.31 times the low tercile's.
   The data is not cached locally, so nothing is checked yet.
 
-Decisions for the user:
-+ adopt the attention budget as the base model and give up the
-  potential;
-+ whether three pieces for groups (categories, pivotal joining, tie
-  bonus) is parsimonious enough.
+After round 3 the user simplified the candidate
+(see _Revisions after round 3_):
+the attention budget is adopted;
+online mixing is dropped and meeting opportunities $M$ are an
+exogenous, flexible primitive;
+group machinery is dropped and party is a readout of the model's
+output.
+The base model is now direction D's, written as a logit inclusive
+value, with five primitives
+($Sigma_0$, $kappa_0$, $kappa$, $h$, $M$).
 
 Next steps:
-+ rebuild the synthesis model on the budget, with endogenous ties, and
-  check whether it too has core--periphery equilibria at
-  $N = infinity$;
-+ fold the group model into it and fit the within/between facts by
-  topic, including the spending switch;
++ check whether the budget model has core--periphery equilibria off the
+  Gaussian branch at $N = infinity$;
++ choose a party readout and fit the within/between facts by topic,
+  including the spending switch;
++ decide whether sociability enters as individual contact volume
+  $kappa_i$ (needed for the GSS test, since degree drops out under the
+  budget);
 + race spike as an amplified shock to the top mode, and its reversion;
 + run the GSS sociability test once the data is built.
+
+== Revisions after round 3 (2026-10-30)
+
+User decisions, made between rounds:
+
+- *Adopt the attention budget* and give up the potential.
+- *No online story.*
+  $M$ is exogenous and may later be parameterized and time-indexed,
+  but no particular story for it is built in;
+  many $M$ can give rise to the same phenomenon.
+- *No group machinery.*
+  Categories, memberships, the group bonus and the pivotal rule are
+  dropped from the base model
+  (kept in round 3 as a recorded extension).
+  Party is a partition of the model's output, used for the
+  within/between decompositions and not fed back into the dynamics.
+  Hard criterion 8 and the soft criteria were revised to match.
+
+*Revised candidate.*
+Agents choose opinions $x_i$ to maximize
+$
+  u_i = underbrace(-kappa_0 / 2 norm(x_i - x_(i 0))^2, "anchor")
+        + underbrace((kappa h) / 2 log sum_j, "attention budget")
+          underbrace(m_(i j), "opportunity")
+          underbrace(e^(-norm(x_i - x_j)^2 \/ h), "homophily"),
+$
+so that
+$
+  dot(x)_i = kappa_0 (x_(i 0) - x_i)
+    + kappa (sum_j hat(w)_(i j) x_j - x_i),
+  quad hat(w)_(i j)
+    = (m_(i j) e^(-norm(x_i - x_j)^2 \/ h))
+      / (sum_k m_(i k) e^(-norm(x_i - x_k)^2 \/ h)).
+$
+The attention shares $hat(w)_(i j)$ are the network.
+
+#figure(
+  table(
+    columns: 3,
+    table.header([*Parameter*], [*Meaning*], [*Role*]),
+    [$Sigma_0$ (per topic)], [covariance of intrinsic positions],
+    [topic heterogeneity via factor structure],
+
+    [$kappa_0$], [stubbornness], [time scale; normalize to 1],
+    [$kappa$], [susceptibility $times$ contact volume],
+    [falling contact raises disagreement],
+
+    [$h$], [selectivity (kernel width)],
+    [in ordered-probit noise units; secondary driver],
+
+    [$M$ (or $M_t$)], [meeting opportunities], [exogenous; only its
+      pattern matters],
+  ),
+  caption: [
+    Primitives of the revised candidate.
+    With complete $M$ and Gaussian $x_0$ the exact closure depends only
+    on $c = kappa \/ kappa_0$ and $sigma_k \/ h$, and tips iff $c > 8$.
+  ],
+)
+
+*Normalizing $M$* (derived).
+Each agent's weights are divided by their own row sum,
+so scaling any row of $M$ leaves the dynamics unchanged.
+The natural convention is row-stochastic $M$
+($sum_j m_(i j) = 1$):
+each row is a distribution over whom $i$ meets.
+This removes $N$ redundant row scales,
+builds the $1 \/ N$ scaling into the large-$N$ limit
+(a row-normalized graphon),
+and makes the $h -> infinity$ limit FJ on the stochastic matrix $M$:
+$
+  x^* = kappa_0 (kappa_0 I + kappa (I - M))^(-1) x_0.
+$
+
+*Consequence for sociability.*
+Under the budget the number of contacts has no effect, only whom one
+meets.
+The GSS sociability test relies on high-contact agents being more
+compressed, so sociability must enter as individual contact volume,
+e.g. $kappa_i = kappa s_i$.
+This would separate how much one socializes ($kappa_i$),
+whom one meets ($m_(i dot)$),
+and whom one listens to (the kernel).
+Open; not yet adopted.
+
+*Party readout.*
+Party is assigned by a rule on positions, e.g. a noisy logit on a fixed
+axis (imperfect sorting, as in the GSS).
+Round 3 found the within/between pattern by topic maps onto factor
+loading, so the readout probably reproduces it (conjectured).
 
 == Round 3 (2026-10-16): closure, spike, groups, GSS test
 
