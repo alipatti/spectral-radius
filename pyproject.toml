@@ -43,5 +43,5 @@ build-backend = "hatchling.build"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
-    "data: needs the cached raw GSS data (data/raw/gss and data/gss); deselect with -m 'not data'",
+    "data: needs the cached raw GSS data (data/raw/gss); deselect with -m 'not data'",
 ]

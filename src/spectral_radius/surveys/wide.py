@@ -4,8 +4,8 @@ from collections.abc import Callable, Sequence
 
 import polars as pl
 
+from spectral_radius.surveys.encodings import scale_to_pm_1
 from spectral_radius.surveys.schemas import DEMOGRAPHICS, SurveyData
-from spectral_radius.variable_coding import scale_to_pm_1
 
 type Encoding = Callable[[pl.Expr], pl.Expr]
 
@@ -22,7 +22,7 @@ def wide(
     One row per respondent with one column per variable, plus demographics and weight `w`.
 
     Rows are respondents from `min_year` onward (all years if `None`).
-    `encoding` is applied to each variable over those rows,
+    `encoding` (see `encodings`) is applied to each variable over those rows,
     so with the default it scales each variable's observed range onto [-1, 1].
     """
     # TODO: scaling by the codebook's range of valid values,
@@ -44,15 +44,15 @@ def wide(
         if v not in answers.columns
     )
 
-    return respondents.join(
-        answers.with_columns(*unanswered),
-        on=["year", "respondent"],
-        how="left",
-        validate="1:1",
-        maintain_order="left",
-    ).select(
-        "year",
-        *DEMOGRAPHICS,
-        pl.col(variables).pipe(encoding),
-        pl.col("weight").alias("w"),
+    # named `w` before encoding, since some encodings weight by it
+    return (
+        respondents.join(
+            answers.with_columns(*unanswered),
+            on=["year", "respondent"],
+            how="left",
+            validate="1:1",
+            maintain_order="left",
+        )
+        .rename({"weight": "w"})
+        .select("year", *DEMOGRAPHICS, pl.col(variables).pipe(encoding), "w")
     )

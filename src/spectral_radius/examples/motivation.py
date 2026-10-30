@@ -1,13 +1,13 @@
-from plotnine_theme import margin
-import polars as pl
+import numpy as np
 import plotnine as pn
+import polars as pl
+from plotnine_theme import margin
 from polars_utils.covariance import covariance_matrix
 from polars_utils.stats import mean
-import numpy as np
 
-from spectral_radius.gss import get_gss
-from spectral_radius.plot_helpers import COLORS, savefig
+from spectral_radius.analysis import analysis_frame
 from spectral_radius.examples.helpers import OUTPUT, create_ellipses_df
+from spectral_radius.plot_helpers import COLORS, savefig
 
 
 def gss_norm_example():
@@ -15,7 +15,7 @@ def gss_norm_example():
     years = 2000, 2012, 2024
 
     df = (
-        get_gss()
+        analysis_frame("gss")
         .select(
             "year",
             pl.col(x, y).neg(),
@@ -33,12 +33,12 @@ def gss_norm_example():
     }
 
     rhos = pl.DataFrame(
-        dict(
-            year=year,
-            rho=np.linalg.norm(sigma, 2).__float__(),
-            trace=np.linalg.norm(sigma, "nuc").__float__(),
-            frob=np.linalg.norm(sigma, "fro").__float__(),
-        )
+        {
+            "year": year,
+            "rho": float(np.linalg.norm(sigma, 2)),
+            "trace": float(np.linalg.norm(sigma, "nuc")),
+            "frob": float(np.linalg.norm(sigma, "fro")),
+        }
         for year, (_, sigma) in mus_and_sigmas.items()
     ).with_columns(
         label=pl.format(
@@ -70,7 +70,7 @@ def gss_norm_example():
             color=COLORS[0],
         )
         + pn.geom_path(
-            data=create_ellipses_df(mus_and_sigmas).rename(dict(sample="year")),
+            data=create_ellipses_df(mus_and_sigmas).rename({"sample": "year"}),
             # linetype="dashed",
             # alpha=0.5,
         )

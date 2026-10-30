@@ -1,5 +1,5 @@
 """
-Check the new pipeline against the old `get_gss` on the real cached GSS data.
+Check the analysis frame built from the real cached GSS data.
 
 These fail (rather than skip) when the data is missing;
 deselect them with `-m 'not data'`.
@@ -9,83 +9,41 @@ import contextlib
 from pathlib import Path
 
 import polars as pl
-import polars.selectors as cs
 import pytest
-from polars.testing import assert_frame_equal
 
+from spectral_radius.analysis import analysis_frame
 from spectral_radius.constants import START_YEAR
-from spectral_radius.surveys import GSS, SurveyData, load, question_variables, wide
+from spectral_radius.surveys import DEMOGRAPHICS, GSS, question_variables
 
 pytestmark = pytest.mark.data
 
 REPO = Path(__file__).parents[1]
-OLD_CACHE = REPO / "data" / "gss"
+VARIABLES = question_variables("gss")
 
 
 @pytest.fixture(scope="module")
-def data() -> SurveyData:
-    gss = GSS(root=REPO / "data")
+def frame() -> pl.DataFrame:
     # check first so a missing cache fails rather than starting a download
-    assert gss.raw_dir.exists(), f"Missing raw GSS data at {gss.raw_dir}"
+    assert GSS(root=REPO / "data").raw_dir.exists(), "Missing raw GSS data"
 
-    return load([gss])
-
-
-@pytest.fixture(scope="module")
-def old() -> pl.DataFrame:
-    assert OLD_CACHE.exists(), f"Missing old GSS cache at {OLD_CACHE}"
-
-    from spectral_radius.gss import get_gss
-
-    # the old loader reads from a path relative to the working directory
+    # the pipeline reads from a path relative to the working directory
     with contextlib.chdir(REPO):
-        return get_gss()
+        return analysis_frame("gss")
 
 
-@pytest.fixture(scope="module")
-def new(data: SurveyData) -> pl.DataFrame:
-    return wide(data, "gss", question_variables("gss"), min_year=START_YEAR)
+def test_analysis_frame_columns(frame: pl.DataFrame):
+    """List the year, demographics, question-set variables, and weight."""
+    assert frame.columns == ["year", *DEMOGRAPHICS, *VARIABLES, "w"]
 
 
-def as_strings(frame: pl.DataFrame) -> pl.DataFrame:
-    return frame.with_columns((cs.categorical() | cs.enum()).cast(pl.String))
+def test_analysis_frame_starts_at_start_year(frame: pl.DataFrame):
+    """Keep only respondents from the start year on."""
+    assert frame["year"].min() == START_YEAR
 
 
-def test_wide_matches_old_get_gss(new: pl.DataFrame, old: pl.DataFrame):
-    """Reproduce the old analysis frame exactly, up to enum versus categorical."""
-    assert_frame_equal(as_strings(new), as_strings(old))
+def test_analysis_frame_scales_variables_to_pm_1(frame: pl.DataFrame):
+    """Scale every variable's observed range onto [-1, 1]."""
+    variables = frame.select(VARIABLES)
 
-
-def test_demographics_are_enums_where_old_were_categorical(
-    new: pl.DataFrame,
-    old: pl.DataFrame,
-):
-    """Differ in dtype only by giving demographics fixed categories."""
-    differing = {
-        c: (new[c].dtype, old[c].dtype)
-        for c in new.columns
-        if new[c].dtype != old[c].dtype
-    }
-
-    assert all(
-        isinstance(n, pl.Enum) and isinstance(o, pl.Categorical)
-        for n, o in differing.values()
-    )
-
-
-@pytest.mark.parametrize("by", [None, "religion", "education"])
-def test_polarization_matches_old(new: pl.DataFrame, old: pl.DataFrame, by: str | None):
-    """Give the same polarization measures as the old frame."""
-    from spectral_radius.spectral import binned_year, measures_by_group_and_category
-    from spectral_radius.surveys.question_sets import QUESTION_SETS
-
-    def measures(frame: pl.DataFrame) -> pl.DataFrame:
-        group = ["year"] if by is None else ["year", by]
-        return (
-            frame.with_columns(binned_year(5))
-            .pipe(measures_by_group_and_category, QUESTION_SETS["gss"], group)
-            .pipe(as_strings)
-            .sort(pl.all())
-        )
-
-    assert_frame_equal(measures(new), measures(old))
+    assert variables.min().row(0) == (-1.0,) * len(VARIABLES)
+    assert variables.max().row(0) == (1.0,) * len(VARIABLES)

@@ -1,24 +1,24 @@
+from collections.abc import Collection, Mapping
 from functools import cache
 from itertools import chain, pairwise
-from typing import Collection, Mapping
-import polars as pl
-from polars import selectors as cs
+
+import inflection
 import numpy as np
 import plotnine as pn
+import polars as pl
 from plotnine_theme import theme_ali
+from polars import selectors as cs
 from polars_utils.stats import mean
-import inflection
 
+from spectral_radius.analysis import analysis_frame
 from spectral_radius.constants import FIGURES, START_YEAR
-from spectral_radius.gss import get_gss
-from spectral_radius.gss import OPINION_CATEGORIES
-from spectral_radius.gss.demographic_variables import DEMOGRAPHIC_VARIABLES
 from spectral_radius.plot_helpers import (
-    COLOR_SCALE,
     CATEGORY_WRAP,
+    COLOR_SCALE,
     PERCENT_CHANGE_SCALE,
     savefig,
 )
+from spectral_radius.surveys import DEMOGRAPHICS, QUESTION_SETS
 
 
 def pairwise_complete_covariance(
@@ -49,18 +49,18 @@ def pairwise_complete_covariance(
 def spectral_measures(sigma: np.ndarray) -> dict[str, float]:
     lambdas = np.linalg.eigh(sigma).eigenvalues  # eigenvalues
 
-    return dict(
+    return {
         # spectral radius i.e. l2 operator norm i.e. spectral norm
-        rho=lambdas.max(),
+        "rho": lambdas.max(),
         # total variance (i.e. trace/nuclear norm)
-        trace=lambdas.sum(),
+        "trace": lambdas.sum(),
         # proportion exp. by first pc
-        spectral_concentration=lambdas.max() / lambdas.sum(),
+        "spectral_concentration": lambdas.max() / lambdas.sum(),
         # spectral gap
-        spectral_gap=lambdas[-1] - lambdas[-2],
+        "spectral_gap": lambdas[-1] - lambdas[-2],
         # frobenius norm
-        frob=np.linalg.norm(lambdas, ord=2),
-    )
+        "frob": np.linalg.norm(lambdas, ord=2),
+    }
 
 
 def measures_by_group_and_category(
@@ -152,23 +152,28 @@ def polarization_over_time_data(
     by: str | None = None,
     metric="rho",
     year_bin_width: int | None = 5,
+    survey: str = "gss",
 ):
-    gss = get_gss().with_columns(binned_year(year_bin_width))
+    responses = analysis_frame(survey).with_columns(binned_year(year_bin_width))
+    categories = QUESTION_SETS[survey]
 
     if not by:
-        rhos_pooled = gss.pipe(
+        rhos_pooled = responses.pipe(
             measures_by_group_and_category,
-            OPINION_CATEGORIES,
+            categories,
             ["year"],
         )
         return rhos_pooled, pl.DataFrame(), pl.DataFrame()
 
     # reuse the cached pooled measures rather than recomputing them for every `by`
-    rhos_pooled, *_ = polarization_over_time_data(year_bin_width=year_bin_width)
+    rhos_pooled, *_ = polarization_over_time_data(
+        year_bin_width=year_bin_width,
+        survey=survey,
+    )
 
-    rhos_within = gss.pipe(
+    rhos_within = responses.pipe(
         measures_by_group_and_category,
-        OPINION_CATEGORIES,
+        categories,
         ["year", by],
     )
 
@@ -190,8 +195,8 @@ def polarization_over_time_data(
     return rhos_pooled, rhos_within, group_decomposition
 
 
-def polarization_figure() -> pn.ggplot:
-    rhos_pooled, *_ = polarization_over_time_data(year_bin_width=1)
+def polarization_figure(survey: str = "gss") -> pn.ggplot:
+    rhos_pooled, *_ = polarization_over_time_data(year_bin_width=1, survey=survey)
 
     fig = (
         pn.ggplot(rhos_pooled, pn.aes("year", "rho"))
@@ -207,8 +212,8 @@ def polarization_figure() -> pn.ggplot:
     return fig
 
 
-def trace_decomp_figure() -> pn.ggplot:
-    rhos_pooled, *_ = polarization_over_time_data()
+def trace_decomp_figure(survey: str = "gss") -> pn.ggplot:
+    rhos_pooled, *_ = polarization_over_time_data(survey=survey)
 
     renames = {
         "spectral_concentration": "Spectral Concentration",
@@ -242,8 +247,11 @@ def trace_decomp_figure() -> pn.ggplot:
     return decomposition
 
 
-def subgroup_polarization_figure(by: str) -> pn.ggplot:
-    _, rhos_within, group_decomposition = polarization_over_time_data(by)
+def subgroup_polarization_figure(by: str, survey: str = "gss") -> pn.ggplot:
+    _, rhos_within, group_decomposition = polarization_over_time_data(
+        by,
+        survey=survey,
+    )
 
     by_group = (
         rhos_within.with_columns(
@@ -268,8 +276,8 @@ def subgroup_polarization_figure(by: str) -> pn.ggplot:
     return by_group
 
 
-def group_decomp_figure(by: str = "race") -> pn.ggplot:
-    _, _, group_decomposition = polarization_over_time_data(by)
+def group_decomp_figure(by: str = "race", survey: str = "gss") -> pn.ggplot:
+    _, _, group_decomposition = polarization_over_time_data(by, survey=survey)
 
     # counterfactual if we fix the other and ONLY allow rho/between to vary
     residual_at_start = pl.col("rho").sub("value").first().over("category", "variable")
@@ -308,21 +316,24 @@ def group_decomp_figure(by: str = "race") -> pn.ggplot:
     return decomposition
 
 
-def main():
-    cuts = ("political_party",)
-    cuts = DEMOGRAPHIC_VARIABLES.keys()
-
+def main(survey: str = "gss"):
     all_figures = (
         {
-            "pooled/pooled": polarization_figure(),
-            "decompositions/trace_concentration": trace_decomp_figure(),
+            "pooled/pooled": polarization_figure(survey),
+            "decompositions/trace_concentration": trace_decomp_figure(survey),
         }
-        | {f"decompositions/{group}": group_decomp_figure(group) for group in cuts}
-        | {f"by_group/{group}": subgroup_polarization_figure(group) for group in cuts}
+        | {
+            f"decompositions/{group}": group_decomp_figure(group, survey)
+            for group in DEMOGRAPHICS
+        }
+        | {
+            f"by_group/{group}": subgroup_polarization_figure(group, survey)
+            for group in DEMOGRAPHICS
+        }
     )
 
     for path_root, fig in all_figures.items():
-        savefig(fig, FIGURES / "gss" / path_root, size=(8.5 - 2, 11 - 3.5))
+        savefig(fig, FIGURES / survey / path_root, size=(8.5 - 2, 11 - 3.5))
 
 
 if __name__ == "__main__":
