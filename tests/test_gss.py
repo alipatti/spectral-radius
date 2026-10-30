@@ -80,7 +80,7 @@ def raw_gss(columns: Mapping[str, Sequence[Any]]) -> pl.LazyFrame:
         (
             "age_bucket",
             {"age": [18, 29, 30, 49, 50, 64, 65, 89, None]},
-            ["18-29", "18-29", "30-49", "30-49", "50-65", "50-65", "65+", "65+", None],
+            ["18-29", "18-29", "30-49", "30-49", "50-64", "50-64", "65+", "65+", None],
         ),
         (
             "political_party",
