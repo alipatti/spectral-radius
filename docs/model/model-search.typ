@@ -1527,7 +1527,7 @@ Use three signatures rather than full structural estimation.
 Practical issues:
 the share is not invariant to item rescaling,
 so fix one per-item scaling across years
-(`unit_variance_at_t0` in `variable_coding.py`, `ranks_at_t0` as
+(`unit_variance_at_t0` in `surveys/encodings.py`, `ranks_at_t0` as
 robustness);
 per-year polychorics would erase the trace signal.
 Cohort replacement breaks stable $X_0$.

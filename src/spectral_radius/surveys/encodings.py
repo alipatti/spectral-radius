@@ -1,7 +1,13 @@
-from collections.abc import Sequence
-import polars as pl
+"""
+Encodings of survey responses as numbers, for `wide`.
 
-from spectral_radius.constants import START_YEAR
+Each maps a variable's raw codes (one column, over the rows of the wide frame)
+to analysis values; `ranks_at_t0` also reads the `year` and weight `w` columns.
+"""
+
+from collections.abc import Sequence
+
+import polars as pl
 
 # TODO: determine appropriate scaling for these
 
@@ -42,4 +48,5 @@ def unit_variance_at_t0(x: pl.Expr) -> pl.Expr:
 
 
 def scale_to_pm_1(x: pl.Expr) -> pl.Expr:
+    """Scale the observed range onto [-1, 1]."""
     return (x - x.min()) / (x.max() - x.min()) * 2 - 1
