@@ -1,13 +1,13 @@
 from functools import cache
-from itertools import combinations_with_replacement
+from itertools import chain, pairwise
 from typing import Collection, Mapping
 import polars as pl
+from polars import selectors as cs
 import numpy as np
 import plotnine as pn
 from plotnine_theme import theme_ali
 from polars_utils.stats import mean
 import inflection
-from tqdm import tqdm
 
 from spectral_radius.constants import FIGURES, START_YEAR
 from spectral_radius.gss import get_gss
@@ -21,31 +21,35 @@ from spectral_radius.plot_helpers import (
 )
 
 
-def measures(
-    df: pl.DataFrame,
-    *,
-    w="w",
-    columns: Collection[str],
-) -> pl.DataFrame:
-    # demean
-    df = df.with_columns(pl.col(columns).pipe(lambda x: x - x.mean()))
+def pairwise_complete_covariance(
+    x: np.ndarray,
+    observed: np.ndarray,
+    w: np.ndarray,
+) -> np.ndarray:
+    """
+    Weighted covariance of the (already demeaned) columns of `x`, pairwise-complete.
 
-    n = len(columns)
-    sigma = np.empty((n, n))
-    weights = df[w]
+    Entry (a, b) is the sum of `w * x_a * x_b` over rows where both a and b are
+    observed, divided by the sum of `w` over exactly those rows (0 if that is 0).
+    Unobserved entries of `x` must be 0 so they drop out of the numerator.
+    """
+    observed = observed.astype(float)
 
-    for (i, a), (j, b) in combinations_with_replacement(enumerate(columns), 2):
-        product = df[b] * df[a] * weights
+    numerator = (x * w[:, None]).T @ x
+    total_weight = (observed * w[:, None]).T @ observed
 
-        total_weight = weights.filter(product.is_not_null()).sum()
-        covariance = product.sum() / total_weight if total_weight > 0 else 0
+    return np.divide(
+        numerator,
+        total_weight,
+        out=np.zeros_like(numerator),
+        where=total_weight > 0,
+    )
 
-        sigma[i, j] = covariance
-        sigma[j, i] = covariance
 
+def spectral_measures(sigma: np.ndarray) -> dict[str, float]:
     lambdas = np.linalg.eigh(sigma).eigenvalues  # eigenvalues
 
-    measures = dict(
+    return dict(
         # spectral radius i.e. l2 operator norm i.e. spectral norm
         rho=lambdas.max(),
         # total variance (i.e. trace/nuclear norm)
@@ -56,54 +60,81 @@ def measures(
         spectral_gap=lambdas[-1] - lambdas[-2],
         # frobenius norm
         frob=np.linalg.norm(lambdas, ord=2),
-        # total weight of group
-        w=df.select(pl.col(w).sum()).item(),
-        # covariance matrix itself
-        # sigma=sigma,
-    )
-
-    return pl.DataFrame(measures)
-
-
-def measures_by_group(
-    df: pl.DataFrame,
-    variables: Collection[str],
-    *,
-    group: Collection[str] = ["year"],
-):
-    return (
-        df.drop_nulls(group)
-        .group_by(*group)
-        .map_groups(
-            lambda df_grouped: (
-                # compute measures
-                measures(df_grouped, columns=variables)
-                # make sure col labels are still there
-                .select(
-                    *(pl.lit(df_grouped.get_column(c).first()).alias(c) for c in group),
-                    pl.all(),
-                )
-            )
-        )
     )
 
 
-# PERF: cache this?
 def measures_by_group_and_category(
     df: pl.DataFrame,
     categories: Mapping[str, Collection[str]],
     group: Collection[str],
-):
+    *,
+    w: str = "w",
+) -> pl.DataFrame:
+    """
+    Spectral measures of each group's covariance matrix of each category's variables.
+
+    Each variable is demeaned (unweighted) over its non-null rows in the group,
+    then covariances are weighted and pairwise-complete.
+    """
     print("Calculating polarization measures")
     print(f" - Categories: {list(categories.keys())}")
     print(f" - Groups: {group}")
 
-    return pl.concat(
-        measures_by_group(df, vs, group=group).select(
-            pl.lit(cat).alias("category"), pl.all()
+    variables = list(dict.fromkeys(chain.from_iterable(categories.values())))
+    position = {v: i for i, v in enumerate(variables)}
+    category_columns = {
+        cat: np.array([position[v] for v in vs]) for cat, vs in categories.items()
+    }
+
+    # sorted so each group's rows are contiguous
+    demeaned = (
+        df.drop_nulls(group)
+        .select(
+            *group,
+            pl.col(w),
+            pl.col(variables).pipe(lambda x: x - x.mean()).over(group),
         )
-        for cat, vs in tqdm(categories.items())
-    ).sort("*")
+        .sort(group, maintain_order=True)
+    )
+
+    groups = (
+        demeaned.group_by(group, maintain_order=True)
+        .agg(pl.len().alias("n"), pl.col(w).sum())
+        # as strings, matching the python literals the labels used to be built from
+        .with_columns((cs.categorical() | cs.enum()).cast(pl.String))
+        .with_row_index("group_index")
+    )
+    group_ends = groups.get_column("n").cum_sum().to_list()
+    group_bounds = enumerate(pairwise([0, *group_ends]))
+
+    # a null weight makes the product null in every pair, i.e. contributes nothing
+    x = demeaned.select(variables).fill_null(0).to_numpy()
+    observed = demeaned.select(pl.col(variables).is_not_null()).to_numpy()
+    weights = demeaned.get_column(w).fill_null(0).to_numpy()
+
+    spectra = pl.DataFrame(
+        dict(
+            group_index=i,
+            category=cat,
+            **spectral_measures(
+                pairwise_complete_covariance(
+                    x[start:end, columns],
+                    observed[start:end, columns],
+                    weights[start:end],
+                )
+            ),
+        )
+        for i, (start, end) in group_bounds
+        for cat, columns in category_columns.items()
+    ).with_columns(pl.col("group_index").cast(pl.UInt32))
+
+    return (
+        spectra.join(groups, on="group_index", validate="m:1")
+        .select(
+            "category", *group, pl.exclude("category", *group, "group_index", "n", w), w
+        )
+        .sort("*")
+    )
 
 
 def binned_year(bin_size: int | None = 1) -> pl.Expr:
@@ -124,14 +155,16 @@ def polarization_over_time_data(
 ):
     gss = get_gss().with_columns(binned_year(year_bin_width))
 
-    rhos_pooled = gss.pipe(
-        measures_by_group_and_category,
-        OPINION_CATEGORIES,
-        ["year"],
-    )
-
     if not by:
+        rhos_pooled = gss.pipe(
+            measures_by_group_and_category,
+            OPINION_CATEGORIES,
+            ["year"],
+        )
         return rhos_pooled, pl.DataFrame(), pl.DataFrame()
+
+    # reuse the cached pooled measures rather than recomputing them for every `by`
+    rhos_pooled, *_ = polarization_over_time_data(year_bin_width=year_bin_width)
 
     rhos_within = gss.pipe(
         measures_by_group_and_category,
