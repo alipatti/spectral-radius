@@ -5,7 +5,13 @@ import pytest
 from dataframely.exc import SchemaError, ValidationError
 from helpers import codebook_rows, frame, survey_data
 
-from spectral_radius.surveys import Codebook, Respondents, Responses, SurveyData
+from spectral_radius.surveys import (
+    DEMOGRAPHICS,
+    Codebook,
+    Respondents,
+    Responses,
+    SurveyData,
+)
 
 RESPONDENT = {"survey": "fake", "year": 2000, "respondent": 1, "weight": 1.0}
 RESPONSE = {
@@ -19,6 +25,18 @@ RESPONSE = {
 
 def codebook_row(**overrides: Any) -> dict[str, Any]:
     return codebook_rows("fake", ["q"])[0] | overrides
+
+
+def test_demographics_are_respondent_columns_besides_key_and_weight():
+    """Map each non-key, non-weight respondent column to its dtype, in schema order."""
+    schema = Respondents.create_empty().schema
+    expected = {
+        name: dtype
+        for name, dtype in schema.items()
+        if name not in {"survey", "year", "respondent", "weight"}
+    }
+
+    assert list(DEMOGRAPHICS.items()) == list(expected.items())
 
 
 def test_valid_data_passes():

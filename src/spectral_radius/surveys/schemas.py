@@ -1,7 +1,8 @@
 """Schemas for cleaned survey data, shared by every source."""
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Self
 
 import dataframely as dy
@@ -90,8 +91,13 @@ class Respondents(dy.Schema):
     type_of_neighborhood = dy.Enum(TYPE_OF_NEIGHBORHOOD.categories, nullable=True)
 
 
-DEMOGRAPHICS: tuple[str, ...] = tuple(
-    c for c in Respondents.column_names() if c not in {*RESPONDENT_KEY, "weight"}
+# the demographic columns of `Respondents` and their dtypes, in schema order
+DEMOGRAPHICS: Mapping[str, pl.DataType] = MappingProxyType(
+    {
+        name: column.dtype
+        for name, column in Respondents.columns().items()
+        if name not in {*Respondents.primary_key(), "weight"}
+    }
 )
 
 
