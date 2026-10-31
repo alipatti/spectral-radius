@@ -1,26 +1,23 @@
 [project]
 name = "spectral-radius"
 version = "0.1.0"
-description = "Add your description here"
+description = "Measure opinion polarization in surveys via the spectral radius of response covariance matrices"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "dataframely>=3.1.2",
-    "great-tables>=0.20.0",
     "httpx>=0.28.1",
     "inflection>=0.5.1",
     "loguru>=0.7.3",
     "matplotlib>=3.10.3",
+    "numpy>=2.5.3",
     "plotnine>=0.14.5",
     "plotnine-theme",
     "polars>=1.30.0",
     "polars-utils",
+    # plotnine needs pyarrow to convert polars frames via to_pandas
     "pyarrow>=20.0.0",
-    "pyperclip>=1.11.0",
     "pyreadstat>=1.2.9",
-    "rich>=14.0.0",
-    "scipy>=1.15.3",
-    "tqdm>=4.67.1",
 ]
 
 [dependency-groups]
