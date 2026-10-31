@@ -6,7 +6,9 @@ import polars as pl
 import pytest
 from polars.testing import assert_frame_equal
 
+from spectral_radius.constants import START_YEAR
 from spectral_radius.spectral import (
+    binned_year,
     measures_by_group_and_category,
     pairwise_complete_covariance,
     spectral_measures,
@@ -146,3 +148,25 @@ def test_measures_match_original_implementation(survey: pl.DataFrame, group: lis
         rel_tol=1e-10,
         abs_tol=1e-12,
     )
+
+
+@pytest.mark.parametrize(
+    ("bin_size", "year", "expected"),
+    [
+        (5, START_YEAR, START_YEAR + 2.5),
+        (5, START_YEAR + 4, START_YEAR + 2.5),
+        (5, START_YEAR + 5, START_YEAR + 7.5),
+        (5, START_YEAR - 1, START_YEAR - 2.5),
+        (1, START_YEAR + 3, START_YEAR + 3.5),
+    ],
+)
+def test_binned_year_maps_to_bin_midpoint(bin_size: int, year: int, expected: float):
+    """Map each year to the midpoint of its bin, with bins starting at START_YEAR."""
+    years = pl.DataFrame({"year": [year]})
+    assert years.select(binned_year(bin_size)).item() == expected
+
+
+def test_binned_year_none_leaves_year_unchanged():
+    """Return the year itself, with its dtype, when there is no bin size."""
+    years = pl.DataFrame({"year": [1990, 1997, 2021]}, schema={"year": pl.Int16})
+    assert_frame_equal(years.select(binned_year(None)), years)

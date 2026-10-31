@@ -148,6 +148,13 @@ def measures_by_group_and_category(
 
 
 def binned_year(bin_size: int | None = 1) -> pl.Expr:
+    """
+    The midpoint of each year's `bin_size`-year bin, with bins starting at
+    `START_YEAR`; the year itself if `bin_size` is None.
+    """
+    if bin_size is None:
+        return pl.col("year")
+
     return (
         pl.col("year")
         .sub(START_YEAR)
