@@ -10,7 +10,7 @@ from spectral_radius.examples.helpers import (
     create_ellipses_df,
     create_sample_df,
 )
-from spectral_radius.plot_helpers import BASE_ELLIPSE_PLOT
+from spectral_radius.plot_helpers import BASE_ELLIPSE_PLOT, savefig
 
 
 def _stretch(x: np.ndarray) -> float:
@@ -112,12 +112,11 @@ def main():
         ],
     }
 
+    # sizes are set by each plot's theme
     out = OUTPUT / "decomps" / "by_group"
-    out.mkdir(exist_ok=True, parents=True)
     for name, mus_and_sigmas in examples.items():
-        group_decomp_plot(mus_and_sigmas).save(out / f"{name}.pdf")
+        savefig(group_decomp_plot(mus_and_sigmas), out / name, size=None)
 
     out = OUTPUT / "decomps" / "stretch_v_scale"
-    out.mkdir(exist_ok=True, parents=True)
     for name in "stretched", "scaled":
-        stretch_v_scale_decomp_plot(name).save(out / f"{name}.pdf")
+        savefig(stretch_v_scale_decomp_plot(name), out / name, size=None)
