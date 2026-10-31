@@ -164,39 +164,55 @@ def binned_year(bin_size: int | None = 1) -> pl.Expr:
     )
 
 
+# the cached helpers take every argument positionally so that equivalent calls
+# share a cache entry, however the public function was called
+
+
+def _binned_responses(year_bin_width: int | None, survey: str) -> pl.DataFrame:
+    return analysis_frame(survey).with_columns(binned_year(year_bin_width))
+
+
 @cache
-def polarization_over_time_data(
-    by: str | None = None,
-    metric="rho",
-    year_bin_width: int | None = 5,
-    survey: str = "gss",
-):
-    # undeclared demographics are null throughout, so grouping by one is an error
-    if by:
-        survey_data().require_demographic(survey, by)
-
-    responses = analysis_frame(survey).with_columns(binned_year(year_bin_width))
-    categories = QUESTION_SETS[survey]
-
-    if not by:
-        rhos_pooled = responses.pipe(
-            measures_by_group_and_category,
-            categories,
-            ["year"],
-        )
-        return rhos_pooled, pl.DataFrame(), pl.DataFrame()
-
-    # reuse the cached pooled measures rather than recomputing them for every `by`
-    rhos_pooled, *_ = polarization_over_time_data(
-        year_bin_width=year_bin_width,
-        survey=survey,
+def _pooled_measures(year_bin_width: int | None, survey: str) -> pl.DataFrame:
+    return measures_by_group_and_category(
+        _binned_responses(year_bin_width, survey),
+        QUESTION_SETS[survey],
+        ["year"],
     )
 
-    rhos_within = responses.pipe(
-        measures_by_group_and_category,
-        categories,
+
+@cache
+def _within_measures(
+    by: str,
+    year_bin_width: int | None,
+    survey: str,
+) -> pl.DataFrame:
+    return measures_by_group_and_category(
+        _binned_responses(year_bin_width, survey),
+        QUESTION_SETS[survey],
         ["year", by],
     )
+
+
+def polarization_over_time_data(
+    by: str | None = None,
+    *,
+    metric: str = "rho",
+    year_bin_width: int | None = 5,
+    survey: str = "gss",
+) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
+    """
+    Pooled measures by year and category and, if `by` is given, measures within
+    each group and the decomposition of `metric` into within and between terms.
+    """
+    if not by:
+        return _pooled_measures(year_bin_width, survey), pl.DataFrame(), pl.DataFrame()
+
+    # undeclared demographics are null throughout, so grouping by one is an error
+    survey_data().require_demographic(survey, by)
+
+    rhos_pooled = _pooled_measures(year_bin_width, survey)
+    rhos_within = _within_measures(by, year_bin_width, survey)
 
     group_decomposition = (
         rhos_pooled.select("year", "category", metric)

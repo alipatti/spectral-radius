@@ -1,16 +1,19 @@
-from collections.abc import Collection, Mapping
+from collections.abc import Collection, Iterator, Mapping
 from itertools import combinations_with_replacement
+from types import SimpleNamespace
 
 import numpy as np
 import polars as pl
 import pytest
 from polars.testing import assert_frame_equal
 
+from spectral_radius import spectral
 from spectral_radius.constants import START_YEAR
 from spectral_radius.spectral import (
     binned_year,
     measures_by_group_and_category,
     pairwise_complete_covariance,
+    polarization_over_time_data,
     spectral_measures,
 )
 
@@ -170,3 +173,53 @@ def test_binned_year_none_leaves_year_unchanged():
     """Return the year itself, with its dtype, when there is no bin size."""
     years = pl.DataFrame({"year": [1990, 1997, 2021]}, schema={"year": pl.Int16})
     assert_frame_equal(years.select(binned_year(None)), years)
+
+
+@pytest.fixture
+def measure_calls(monkeypatch: pytest.MonkeyPatch) -> Iterator[list[list[str]]]:
+    """Serve a synthetic survey and record the groups of each measures computation."""
+    rng = np.random.default_rng(1)
+    n = 200
+    responses = pl.DataFrame(
+        {
+            "year": rng.integers(START_YEAR, START_YEAR + 10, n),
+            "race": rng.choice(["a", "b"], n),
+            "x": rng.normal(size=n),
+            "y": rng.normal(size=n),
+            "w": rng.uniform(0.5, 2, n),
+        }
+    )
+    calls: list[list[str]] = []
+
+    def recording_measures(*args, **kwargs):
+        calls.append(list(args[2]))
+        return measures_by_group_and_category(*args, **kwargs)
+
+    monkeypatch.setitem(spectral.QUESTION_SETS, "fake", {"xy": ["x", "y"]})
+    monkeypatch.setattr(spectral, "analysis_frame", lambda survey: responses)
+    monkeypatch.setattr(
+        spectral,
+        "survey_data",
+        lambda: SimpleNamespace(require_demographic=lambda survey, by: None),
+    )
+    monkeypatch.setattr(spectral, "measures_by_group_and_category", recording_measures)
+
+    for cached in spectral._pooled_measures, spectral._within_measures:
+        cached.cache_clear()
+
+    yield calls
+
+    for cached in spectral._pooled_measures, spectral._within_measures:
+        cached.cache_clear()
+
+
+def test_polarization_over_time_data_computes_pooled_measures_once(
+    measure_calls: list[list[str]],
+):
+    """Compute the pooled measures once across equivalently passed arguments."""
+    polarization_over_time_data(survey="fake")
+    polarization_over_time_data(None, year_bin_width=5, survey="fake")
+    polarization_over_time_data("race", survey="fake")
+    polarization_over_time_data("race", metric="trace", survey="fake")
+
+    assert measure_calls == [["year"], ["year", "race"]]
