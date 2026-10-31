@@ -4,11 +4,11 @@ import numpy as np
 import plotnine as pn
 
 from spectral_radius.examples.helpers import (
-    create_sample_df,
-    create_ellipses_df,
     OUTPUT,
-    R,
     MuSigmaList,
+    R,
+    create_ellipses_df,
+    create_sample_df,
 )
 from spectral_radius.plot_helpers import BASE_ELLIPSE_PLOT
 

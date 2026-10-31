@@ -84,7 +84,7 @@ def reference_measures(
             product = frame[b] * frame[a] * weights
             total_weight = weights.filter(product.is_not_null()).sum()
             sigma[i, j] = sigma[j, i] = (
-                product.sum() / total_weight if total_weight > 0 else 0
+                float(product.sum()) / float(total_weight) if total_weight > 0 else 0
             )
 
         return spectral_measures(sigma) | {"w": frame["w"].sum()}

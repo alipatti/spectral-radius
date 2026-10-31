@@ -1,10 +1,10 @@
-from pathlib import Path
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 import numpy as np
+import plotnine as pn
 import polars as pl
 from numpy._typing import _ArrayLikeFloat_co
-import plotnine as pn
 
 from spectral_radius.constants import FIGURES
 
@@ -29,8 +29,8 @@ SCHOOLBOOK_AXES = pn.geom_segment(
     pn.aes("x", "y", xend="xend", yend="yend"),
     data=pl.from_records(
         [
-            dict(x=0, xend=0, y=-AXIS_LEN, yend=AXIS_LEN),
-            dict(y=0, yend=0, x=-AXIS_LEN, xend=AXIS_LEN),
+            {"x": 0, "xend": 0, "y": -AXIS_LEN, "yend": AXIS_LEN},
+            {"y": 0, "yend": 0, "x": -AXIS_LEN, "xend": AXIS_LEN},
         ]
     ),
     size=0.25,

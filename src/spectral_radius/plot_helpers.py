@@ -1,8 +1,10 @@
 from pathlib import Path
+from typing import Any
 
 import matplotlib as mpl
-import polars as pl
 import plotnine as pn
+import polars as pl
+from matplotlib.typing import RcKeyType
 
 COLORS = [
     "#4976ca",  # blue
@@ -51,7 +53,7 @@ BASE_ELLIPSE_PLOT = (
 )
 
 
-PGF_PARAMS = {
+PGF_PARAMS: dict[RcKeyType, Any] = {
     "pgf.texsystem": "pdflatex",
     "font.family": "cmu serif",
     "text.usetex": True,
@@ -73,18 +75,7 @@ def savefig(
         path = path.with_suffix(extension)
         path.parent.mkdir(exist_ok=True, parents=True)
 
-        # get current settings
-        backend, params = mpl.get_backend(), mpl.rcParams.copy()
-
         print(f"Saving figure to {path}")
 
-        try:
-            # use pgf backend to save
-            mpl.use("pgf")
-            mpl.rcParams.update(PGF_PARAMS)
-            fig.save(path, verbose=False)
-
-        finally:
-            # restore settings
-            mpl.use(backend)
-            mpl.rcParams.update(params)
+        with mpl.rc_context(PGF_PARAMS):
+            fig.save(path, verbose=False, backend="pgf")
