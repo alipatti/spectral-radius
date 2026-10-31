@@ -5,6 +5,7 @@ paper/generated/
 .gabriel/
 
 # output
+build/
 *.pdf
 *.pgf
 *.csv
