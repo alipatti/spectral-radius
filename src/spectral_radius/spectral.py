@@ -6,6 +6,7 @@ import inflection
 import numpy as np
 import plotnine as pn
 import polars as pl
+from loguru import logger
 from plotnine_theme import theme_ali
 from polars import selectors as cs
 from polars_utils.stats import mean
@@ -80,9 +81,11 @@ def measures_by_group_and_category(
     Each variable is demeaned (unweighted) over its non-null rows in the group,
     then covariances are weighted and pairwise-complete.
     """
-    print("Calculating polarization measures")
-    print(f" - Categories: {list(categories.keys())}")
-    print(f" - Groups: {group}")
+    logger.info(
+        "Calculating polarization measures for categories {} by groups {}",
+        list(categories),
+        list(group),
+    )
 
     variables = list(dict.fromkeys(chain.from_iterable(categories.values())))
     position = {v: i for i, v in enumerate(variables)}

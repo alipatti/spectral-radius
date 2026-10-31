@@ -4,6 +4,7 @@ from typing import Any
 import matplotlib as mpl
 import plotnine as pn
 import polars as pl
+from loguru import logger
 from matplotlib.typing import RcKeyType
 
 COLORS = [
@@ -60,7 +61,7 @@ def savefig(
         path = path.with_suffix(extension)
         path.parent.mkdir(exist_ok=True, parents=True)
 
-        print(f"Saving figure to {path}")
+        logger.info("Saving figure to {}", path)
 
         with mpl.rc_context(PGF_PARAMS):
             fig.save(path, verbose=False, backend="pgf")
