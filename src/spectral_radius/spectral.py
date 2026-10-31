@@ -267,10 +267,7 @@ def subgroup_polarization_figure(by: str, survey: str = "gss") -> pn.ggplot:
     )
 
     by_group = (
-        rhos_within.with_columns(
-            # TODO: do we want to demean?
-            # pl.col(metric).pipe(lambda x: (x / x.log().mean().exp()).over("category"))
-        ).pipe(
+        rhos_within.pipe(
             pn.ggplot,
             pn.aes("year", "rho"),
         )

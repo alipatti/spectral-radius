@@ -71,13 +71,10 @@ def gss_norm_example():
         )
         + pn.geom_path(
             data=create_ellipses_df(mus_and_sigmas).rename({"sample": "year"}),
-            # linetype="dashed",
-            # alpha=0.5,
         )
         + pn.geom_text(
             pn.aes(x=-0.5, y=+0.75, label="label"),
             data=rhos,
-            # format_string="\\small $\\rho={:.2f}$",
             inherit_aes=False,
         )
         + pn.coord_fixed()

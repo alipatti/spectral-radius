@@ -2,7 +2,6 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 import numpy as np
-import plotnine as pn
 import polars as pl
 from numpy._typing import _ArrayLikeFloat_co
 
@@ -24,29 +23,12 @@ R = np.array(
     ]
 )
 
-AXIS_LEN = 1.5
-SCHOOLBOOK_AXES = pn.geom_segment(
-    pn.aes("x", "y", xend="xend", yend="yend"),
-    data=pl.from_records(
-        [
-            {"x": 0, "xend": 0, "y": -AXIS_LEN, "yend": AXIS_LEN},
-            {"y": 0, "yend": 0, "x": -AXIS_LEN, "xend": AXIS_LEN},
-        ]
-    ),
-    size=0.25,
-    alpha=0.6,
-    arrow=pn.arrow(type="closed", ends="both", length=0.05),
-    inherit_aes=False,
-)
-
 
 def df_from_numpy(arr: np.ndarray, c: Any) -> pl.DataFrame:
     return pl.from_numpy(arr, schema=["x1", "x2"]).with_columns(sample=pl.lit(c))
 
 
-def ellipse_points(
-    mu: _ArrayLikeFloat_co, sigma: _ArrayLikeFloat_co, n_points=100, **kwargs
-):
+def ellipse_points(mu: _ArrayLikeFloat_co, sigma: _ArrayLikeFloat_co, n_points=100):
     t = np.linspace(0, 2 * np.pi, num=n_points)
     circle_points = np.column_stack((np.cos(t), np.sin(t)))
     return circle_points @ sigma + mu

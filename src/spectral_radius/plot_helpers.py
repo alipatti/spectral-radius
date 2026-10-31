@@ -28,21 +28,6 @@ PERCENT_CHANGE_SCALE = pn.scale_y_continuous(
     labels=lambda ss: [f"{s - 1:+.0%}" for s in ss],  # type: ignore
 )
 
-COVID_VLINE = pn.geom_vline(
-    xintercept=2020.25,
-    linetype="dashed",
-    alpha=0.5,
-    color="black",
-)
-
-RECESSION_VLINE = pn.geom_vline(
-    xintercept=2007.25,
-    linetype="dashed",
-    alpha=0.5,
-    color="black",
-)
-
-
 BASE_ELLIPSE_PLOT = (
     pn.ggplot(pl.DataFrame(), pn.aes("x1", "x2", color="factor(sample)"))
     + pn.coord_fixed()

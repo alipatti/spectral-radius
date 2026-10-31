@@ -74,14 +74,12 @@ def group_decomp_plot(mus_and_sigmas: MuSigmaList) -> pn.ggplot:
     sample_points = create_sample_df(mus_and_sigmas)
 
     within_ellipses = create_ellipses_df(mus_and_sigmas)
-    # between_elipses = create_ellipses_df([([0, 0], sigma_between)])
 
     pooled_ellipse = create_ellipses_df([(mu, sigma)]).drop("sample")
 
     w = (8.5 - 2) / 3
     return (
         BASE_ELLIPSE_PLOT
-        # + AXES
         + pn.geom_point(data=sample_points, alpha=0.2, shape="x", size=1)
         + pn.geom_point(data=within_ellipses.group_by("sample").mean(), shape="x")
         + pn.geom_point(data=pooled_ellipse.mean(), shape="x", color="black")
@@ -93,7 +91,6 @@ def group_decomp_plot(mus_and_sigmas: MuSigmaList) -> pn.ggplot:
         + pn.geom_path(
             color="black",
             data=pooled_ellipse,
-            # linetype="dashed",
         )
         + pn.theme(figure_size=(w, w))
     )
