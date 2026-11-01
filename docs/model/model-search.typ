@@ -3,7 +3,7 @@
 
 = Model search
 A living document.
-Started 2026-10-16; last updated 2026-10-30.
+Started 2026-10-16; last updated 2026-11-01.
 Each round records what subagents tried and found.
 All numbers come from small simulations and are illustrative rather
 than robust.
@@ -30,7 +30,8 @@ The user steers between and during rounds.
   _Current status_ always reflects the latest view.
 - Scratch scripts from rounds 0--2 were not kept;
   every result they produced is recorded below.
-  Round 3 scripts are in `/tmp/claude-1000/r3-*/` and may not persist.
+  Scripts from round 3 on are in `/tmp/claude-1000/r<round>-*/` and may
+  not persist.
 
 == Criteria
 
@@ -234,16 +235,318 @@ Round 4 worked out the budget model's structure.
   sociable extremes;
   the GSS test needs a log-sd of $s$ of roughly 0.5--1.
 
+After round 4 the user kept this model for the time being
+and turned round 5 to measurement:
+discretized poll responses.
+
+Round 5 adds a measurement layer.
+
+- *The map is closed form.*
+  Coded covariances depend on latent $(mu, Sigma)$ only through
+  standardized cutpoints and latent correlations.
+  The direction of the spectral radius survives coding when all latent
+  dispersion rises;
+  the split into trace and share does not, and on all-binary topics
+  (abortion, speech) the coded trace is a function of item margins.
+- *The comparison object* is a latent $Sigma_t$ from an ordinal model
+  with cutpoints fixed over time.
+  The overall scale is not identified (it never was);
+  growth within a topic and the share are.
+  Binary items identify only $(tau - mu) \/ sigma$,
+  so binary-heavy topics need a cross-item restriction.
+- *On the GSS latent scale* (first estimates):
+  the trace rise survives where the scale is identified;
+  the share _rises_ in 2020--24 on welfare, spending, affirmative
+  action, sex and race, which revises fact 2 for the latest period;
+  abortion's U comes from means, not dispersion;
+  the race concentration spike is real, comes with a modest latent
+  trace rise, and had reverted by 2024;
+  part of fact 4 is a coding artifact.
+- *Data problems found.*
+  In the repo's pairwise covariance, item pairs never asked together in
+  a year are silently set to 0
+  (race 2022 and 2024: 12 of 36 pairs; `fehire` and `fejobaff`
+  2000--18).
+  The 2021 web mode shifts responses and raises shares.
+- *Discrete expression inside the model* (agents see stated, not
+  latent, positions) is an extension, not the base:
+  it equals the base model on Likert items and adds tipping and camps on
+  binary items.
+
 Next steps:
-+ the GSS checks the data now allows:
-  whether race reverted by 2022--24, its latent (probit) trace,
-  and the sociability test;
-+ whether the paper's regime is above or below $h_"cl"$, and what the
-  cluster regime means (many clusters, not two);
-+ whether rising sorting is an acceptable exogenous driver of the party
-  readout, or needs a source;
-+ reconcile closure and particles on race reversion (random populations
-  lock in; quadrature nodes revert).
++ fix the never-co-asked pairs in the paper's covariance (a paper
+  issue, not only a model one);
++ a mode-specific measurement model for 2021--24 (cutpoints free for
+  web respondents);
++ a factor-model measurement layer for binary-heavy topics, with
+  invariance assumptions stated;
++ decide whether the paper reports latent or coded statistics, and
+  refit the model's targets accordingly;
++ the sociability test;
++ carried over from round 4:
+  the regime relative to $h_"cl"$, the source of rising sorting, and
+  race reversion in the closure versus particles.
+
+== Round 5 (2026-11-01): measurement
+
+Three tasks on bringing discretized poll responses into the model:
+the theory of the measurement map,
+discrete expression inside the micro model,
+and latent covariances estimated from the GSS.
+Scripts are in `/tmp/claude-1000/r5-*/`.
+
+=== The measurement map
+
+Verdict: the map has a closed form;
+it preserves the direction of the spectral radius but not the split
+into trace and share.
+
+*Map* (derived; matches Monte Carlo to 0.002).
+Item $j$ has $K_j$ categories coded evenly on $[-1, 1]$ with step
+$Delta_j$, and cutpoints $tau_(j k)$ fixed over time.
+With latent response $u_j = lambda_j' x + e_j$,
+$x tilde N(mu, Sigma)$ and $e_j tilde N(0, sigma_e^2)$, let
+$
+  t_(j k) = (tau_(j k) - lambda_j' mu) / s_j,
+  quad s_j^2 = lambda_j' Sigma lambda_j + sigma_e^2,
+  quad r_(i j) = (lambda_i' Sigma lambda_j) / (s_i s_j).
+$
+Then
+$
+  "Var"(y_j) & = Delta_j^2 sum_(k, l) (Phi(-max(t_(j k), t_(j l)))
+                 - Phi(-t_(j k)) Phi(-t_(j l))), \
+  "Cov"(y_i, y_j) & = Delta_i Delta_j sum_(k, l)
+                 integral_0^(r_(i j)) phi_2(t_(i k), t_(j l); rho) dif rho,
+$
+the second by Plackett's identity
+(for median binary items, $(2 \/ pi) arcsin r$).
+So coded covariances depend on $(mu, Sigma)$ only through $t$ and $r$.
+
+*Propositions.*
+
++ *Trace is monotone and bounded* (derived).
+  Each coded variance rises strictly with latent dispersion and tends
+  to 1.
+  For a binary item it is exactly $1 - "mean"^2$, with no dispersion
+  information beyond the margin.
+  Its elasticity is a format factor times reliability:
+  0 for a median binary, 0.36, 0.61, 0.71 for 3, 5, 7 categories.
++ *Uniform scaling preserves direction* (derived).
+  If every $s_j$ scales up with means and $r$ fixed and the
+  sign-aligned $r_(i j) >= 0$, coded covariances rise entrywise, so the
+  coded radius and trace rise (Perron--Frobenius).
+  On the Gaussian branch with all modes rising, the coded radius has the
+  latent sign in 448 of 450 random cases;
+  with the top mode up and others down it flips in 8--25%.
++ *The share is nearly uninformative.*
+  Coded correlations are bounded by latent ones (Gebelein) but also
+  depend on cutpoints and item variances;
+  with all modes rising, the coded share has the wrong sign in 42--48%
+  of cases.
++ *Mixed formats* push the share toward whichever format is furthest
+  from its ceiling;
+  the direction depends on the mix (one mix falls 0.73 to 0.29,
+  round 2's rose 0.27 to 0.53).
++ *Noise creates spurious concentration* (derived):
+  $r_(i j) = R_(i j) sqrt("rel"_i "rel"_j)$, so rising dispersion raises
+  coded correlations at a fixed latent share
+  (0.19 to 0.26 for a race-like format mix).
++ *Means contaminate the trace* (derived).
+  In an abortion-like topic a mean shift of 0.4 latent sd lowers the
+  coded trace 7%, while a 20% rise in latent sd raises it only 3%.
+  The model has fixed latent means, so mean trends must be removed
+  before comparing.
+
+*Comparison objects*, in order of preference:
+a multigroup ordered-probit factor model with years as groups
+(cutpoints, loadings and noise fixed; $mu_t$ and $Sigma_t$ free),
+which maps one to one onto the model's $Lambda Sigma Lambda'$;
+polychorics with pooled cutpoints (its pairwise version;
+per-year polychorics give trace identically equal to the number of
+items);
+or coded statistics with the spectral radius as headline,
+a trace that holds margins at base-year values,
+and the model pushed through the map.
+
+=== Discrete expression in the model
+
+Verdict: keep as an extension ("expressed positions" rung), not the
+base model.
+
+*Model.*
+Speaker $j$ states $y_j = g(x_j)$, the code of $x_j$'s category
+(codes fixed at the intrinsic conditional means), and
+$
+  u_i = -kappa_0 / 2 norm(x_i - x_(i 0))^2
+        + (kappa h) / 2 log sum_j m_(i j) e^(-norm(x_i - y_j)^2 \/ h).
+$
+This is still exact gradient play, because $u_i$ does not depend on
+$i$'s own statement;
+homophily on $norm(y_i - y_j)$ would break it.
+With dense $M$ independent of $x_0$ the mean field depends only on the
+shares of the expression cells:
+a finite-dimensional fixed point for any intrinsic distribution.
+As the number of categories grows the model converges to the base
+model (derived).
+
+*Binary items* (derived at $h = infinity$; checked by particles,
+$N = 1000$ in 1-d and 600 in 3-d, seeds 1--3).
+
+- The yes-share solves
+  $p = Phi(mu + c sqrt(2 \/ pi)(2 p - 1))$, with tipping and hysteresis
+  iff $c > pi \/ 2$:
+  Brock--Durlauf mean-field binary choice.
+  The base model has no mean dynamics.
+- Expression noise of sd above $2 \/ pi$ removes tipping for any $c$,
+  and so does rational decoding (listeners reading a statement as the
+  current category mean):
+  the cascade needs stereotyped decoding.
+- Camps form with an empty band at the cutpoint, so the number of camps
+  is set by the format, not by $h$.
+- With three binary items, coded share is 0.91--1.00 against the base
+  model's 0.65 (alignment at the all-yes and all-no corners);
+  falling contact _lowers_ it.
+- Five-point items behave exactly like the base model;
+  distance to the base equilibrium is 0.169, 0.029, 0.007, 0.001 at
+  $K = 2, 5, 10, 50$.
+- The trace bound still holds with honest codes.
+
+Identifying the poll response with $y$ is weaker than it looks:
+survey formats are set by researchers and vary within topics,
+and on Likert items the two readings are indistinguishable.
+Distinguishing observables: binary items far more aligned than latent
+correlations imply, and contact-dependent;
+an empty latent band at the cutpoint;
+S-shaped, history-dependent margins on yes/no norm items;
+false polarization.
+Literature verified by search: Martins (2008, CODA);
+Buechel--Hellmann--Klößner (2015).
+From memory: Brock--Durlauf (2001), Kuran (1995), Bursztyn et al.
+(2020).
+
+=== Latent covariances in the GSS
+
+Verdict: on the latent scale the trace rise survives where it is
+identified, but concentration rises in 2020--24 on most topics,
+abortion's U is a mean effect, and race's spike is real and had
+reverted by 2024
+(checked on data; first estimates).
+
+*Method.*
+
++ Per item, $P(Y <= k | t) = Phi((tau_(j k) - mu_(j t)) \/ sigma_(j t))$
+  with cutpoints fixed and $mu = 0$, $sigma = 1$ in the first period;
+  weighted (`WTSSPS`) likelihood on the paper's five-year bins.
++ Pairwise polychoric correlations with those cutpoints fixed.
++ $Sigma_t = D_t R_t D_t$, each item with sd 1 in the base period,
+  projected to the nearest correlation matrix when needed
+  (8 of 62 topic-periods; speech in every period).
+
+Binary items need a scale rule:
+v1 pins their latent sd at 1;
+v2 holds the topic's summed residual variance at its base value
+(the fixed-noise idea), which is weak
+(its implied scales correlate only 0.41 with marginal scales on ordinal
+items; bootstrap SE 0.1--0.2).
+Balanced items only;
+50 bootstrap replicates resampling respondents within year;
+pairwise $n$ is typically 1,500--5,000 per topic-period
+(minimum 427, race 1990--94).
+
+#figure(
+  table(
+    columns: 6,
+    table.header([*Topic*], [*Coded trace*], [*Latent v1*],
+      [*Latent v2*], [*Coded share*], [*Latent share*]),
+    [abortion], [1.06 / 1.01], [n.i.], [1.25 / 1.04],
+    [.68, .67, .71], [.86, .85, .87],
+
+    [aff. action], [1.10 / 1.20], [1.00 / 1.21], [= v1],
+    [.56, .59, .63], [.59, .61, .69],
+
+    [speech], [.84 / .86], [n.i.], [.84 / .83], [.45, .41, .37],
+    [.64, .59, .51],
+
+    [spending], [1.08 / 1.10], [1.11 / 1.22], [= v1],
+    [.19, .20, .25], [.23, .24, .31],
+
+    [police], [1.34 / 1.46], [1.21 / 1.27], [1.48 / 1.43],
+    [.29, .27, .29], [.29, .31, .32],
+
+    [race], [.98 / .98], [1.01 / 1.06], [1.07 / 1.25], [.27, .27, .35],
+    [.36, .32, .43],
+
+    [sex], [1.07 / 1.13], [1.30 / 1.22], [= v1], [.44, .52, .50],
+    [.54, .62, .62],
+
+    [welfare], [1.04 / 1.14], [1.02 / 1.33], [= v1], [.49, .55, .61],
+    [.54, .62, .70],
+  ),
+  caption: [
+    Trace relative to the base period (1990--94; affirmative action
+    1995--99) in 2015--19 / 2020--24,
+    and share in base, 2015--19, 2020--24.
+    "n.i.": not identified (all-binary topic).
+    Latent bootstrap SEs are 0.02--0.07 for v1 and 0.07--0.19 for v2.
+  ],
+)
+
+- *Fact 1* survives on the latent scale for the all-ordinal topics and
+  for police through its ordinal items;
+  for all-binary topics it rests on a scale assumption.
+- *Fact 2* is revised for 2020--24:
+  the latent share rises on welfare, spending, affirmative action, sex
+  and race, is flat for police, and falls for speech.
+  The paper's coded numbers already show share rising in 2020--24 for
+  welfare (+25%), spending (+26%) and race.
+- *Abortion's U* comes from means:
+  item means rise to about 2005 and then fall below their 1990 level,
+  while the latent share is flat (0.84--0.87).
+- *Race* (six balanced items by year, 2014 to 2024):
+  latent share 0.39, 0.41, 0.38, 0.48, 0.46, 0.41;
+  latent trace 1.00--1.04 under v1, up to 1.32 under v2 in 2021.
+  The concentration spike is real, comes with a modest trace rise, and
+  had reverted by 2024 (partly by 2022).
+- *Fact 4* is partly a coding artifact:
+  average within-party $lambda_1$ is below overall in both scales;
+  affirmative action's one party above overall goes from 1.11 coded to
+  0.95 latent.
+  But police Democrats are 1.30 times overall on the latent scale,
+  resting on the within-party scale assumption for binary items and
+  contradicting round 4's Gaussian no-go.
+- *Sorting*, latent $abs("corr"("party", "PC1"))$ from 1990--94 to
+  2020--24:
+  spending 0.26 to 0.58, welfare 0.33 to 0.55, affirmative action
+  0.32 to 0.56, race 0.14 to 0.56, abortion 0.11 to 0.45, sex 0.12 to
+  0.37;
+  flat for police (about 0.2) and speech (about 0.03).
+  This supports rising sorting as the party readout's driver.
+
+*Data problems* (checked).
+
+- *Never-co-asked pairs.*
+  The repo's pairwise covariance sets the covariance of item pairs never
+  asked together in a year to 0:
+  race 2022 and 2024 (12 of 36 pairs), and `fehire` with `fejobaff`
+  2000--18.
+  The paper's coded race "full reversion" in 2022--24 is partly this
+  artifact (nine-item coded share 0.28, 0.36, 0.28, 0.27 in 2018, 2021,
+  2022, 2024).
+- *Affirmative action base period.*
+  The coded trace doubles from 1990--94 to 1995--99 only because
+  `fehire` and `fejobaff` enter in 1996.
+- *Mode.*
+  2021 was 87% web, 2022 and 2024 about half.
+  Race latent share is 0.49, 0.50, 0.45 among web respondents against
+  0.40, 0.44, 0.37 otherwise (2021, 2022, 2024), and other topics' shares
+  are also higher on web.
+  Web respondents almost never answer "don't know".
+  Mode is self-selected, so this is suggestive.
+- *Cutpoint stability* (likelihood-ratio tests, items with 4 or more
+  categories):
+  `fehire` fails badly (LR/df 44, worst in 2021), `wrkwayup` fails
+  (16, mostly 2021), `helpblk` and `helpsick` are marginal (7--9),
+  the sex items fit.
 
 == Round 4 (2026-10-30): structure, party, race, sociability
 
