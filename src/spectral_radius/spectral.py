@@ -20,6 +20,7 @@ from spectral_radius.plot_helpers import (
     savefig,
 )
 from spectral_radius.surveys import DEMOGRAPHICS, QUESTION_SETS
+from spectral_radius.surveys.pipeline import surveys
 
 
 def pairwise_complete_covariance(
@@ -207,7 +208,7 @@ def polarization_over_time_data(
     *,
     metric: str = "rho",
     year_bin_width: int | None = 5,
-    survey: str = "gss",
+    survey: str,
 ) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
     """
     Pooled measures by year and category and, if `by` is given, measures within
@@ -242,7 +243,7 @@ def polarization_over_time_data(
     return rhos_pooled, rhos_within, group_decomposition
 
 
-def polarization_figure(survey: str = "gss") -> pn.ggplot:
+def polarization_figure(survey: str) -> pn.ggplot:
     rhos_pooled, *_ = polarization_over_time_data(year_bin_width=1, survey=survey)
 
     fig = (
@@ -259,7 +260,7 @@ def polarization_figure(survey: str = "gss") -> pn.ggplot:
     return fig
 
 
-def trace_decomp_figure(survey: str = "gss") -> pn.ggplot:
+def trace_decomp_figure(survey: str) -> pn.ggplot:
     rhos_pooled, *_ = polarization_over_time_data(survey=survey)
 
     renames = {
@@ -294,7 +295,7 @@ def trace_decomp_figure(survey: str = "gss") -> pn.ggplot:
     return decomposition
 
 
-def subgroup_polarization_figure(by: str, survey: str = "gss") -> pn.ggplot:
+def subgroup_polarization_figure(by: str, survey: str) -> pn.ggplot:
     _, rhos_within, group_decomposition = polarization_over_time_data(
         by,
         survey=survey,
@@ -320,7 +321,7 @@ def subgroup_polarization_figure(by: str, survey: str = "gss") -> pn.ggplot:
     return by_group
 
 
-def group_decomp_figure(by: str = "race", survey: str = "gss") -> pn.ggplot:
+def group_decomp_figure(by: str, survey: str) -> pn.ggplot:
     _, _, group_decomposition = polarization_over_time_data(by, survey=survey)
 
     # counterfactual if we fix the other and ONLY allow rho/between to vary
@@ -360,11 +361,12 @@ def group_decomp_figure(by: str = "race", survey: str = "gss") -> pn.ggplot:
     return decomposition
 
 
-def main(survey: str = "gss"):
+def survey_figures(survey: str) -> dict[str, pn.ggplot]:
+    """Every figure of `survey`, by its path under the survey's figures directory."""
     provided = survey_data().demographics[survey]
     demographics = [d for d in DEMOGRAPHICS if d in provided]
 
-    all_figures = (
+    return (
         {
             "pooled/pooled": polarization_figure(survey),
             "decompositions/trace_concentration": trace_decomp_figure(survey),
@@ -379,8 +381,12 @@ def main(survey: str = "gss"):
         }
     )
 
-    for path_root, fig in all_figures.items():
-        savefig(fig, FIGURES / survey / path_root, size=(8.5 - 2, 11 - 3.5))
+
+def main() -> None:
+    """Save every survey's figures under `figures/<survey>/`."""
+    for survey in surveys():
+        for path_root, fig in survey_figures(survey).items():
+            savefig(fig, FIGURES / survey / path_root, size=(8.5 - 2, 11 - 3.5))
 
 
 if __name__ == "__main__":

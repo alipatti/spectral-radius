@@ -8,6 +8,7 @@ import polars as pl
 
 from spectral_radius.analysis import survey_data
 from spectral_radius.surveys import QUESTION_SETS
+from spectral_radius.surveys.pipeline import surveys
 
 OUTPUT = Path("paper/generated")
 
@@ -85,8 +86,18 @@ def questions_appendix(
     )
 
 
-def main(survey: str = "gss") -> None:
-    output = OUTPUT / f"{survey}_appendix.tex"
+def appendix_path(survey: str) -> Path:
+    return OUTPUT / f"{survey}_appendix.tex"
+
+
+def write_appendix(survey: str) -> None:
+    output = appendix_path(survey)
     output.parent.mkdir(exist_ok=True, parents=True)
     codebook = survey_data().codebook.filter(pl.col("survey") == survey)
     output.write_text(questions_appendix(codebook, QUESTION_SETS[survey]))
+
+
+def main() -> None:
+    """Write every survey's appendix to `paper/generated/<survey>_appendix.tex`."""
+    for survey in surveys():
+        write_appendix(survey)
