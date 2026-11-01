@@ -10,7 +10,13 @@ def respondent(survey: str, year: int, id: int, weight: float = 1.0) -> dict:
     return {"survey": survey, "year": year, "respondent": id, "weight": weight}
 
 
-def answer(survey: str, year: int, id: int, variable: str, value: int) -> dict:
+def answer(
+    survey: str,
+    year: int,
+    id: int,
+    variable: str,
+    value: int | None,
+) -> dict:
     return {
         "survey": survey,
         "year": year,
@@ -70,3 +76,19 @@ def test_unanswered_variable_is_null(data: SurveyData):
 
     assert out["unasked"].dtype == pl.Int64
     assert out["unasked"].null_count() == len(out)
+
+
+def test_non_answers_are_null():
+    """Null every missing kind, without it counting toward the encoded range."""
+    data = survey_data(
+        [respondent("a", 2000, i) for i in (1, 2, 3)],
+        [
+            answer("a", 2000, 1, "q", 0),
+            answer("a", 2000, 2, "q", 4),
+            answer("a", 2000, 3, "q", None) | {"missing": "dont_know"},
+        ],
+    )
+
+    out = wide(data, "a", ["q"])
+
+    assert out["q"].to_list() == [-1.0, 1.0, None]

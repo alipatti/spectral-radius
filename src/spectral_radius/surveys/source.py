@@ -65,14 +65,17 @@ class Source(ABC):
         """
         Clean the raw files in `raw` into frames matching the schemas.
 
-        Responses must hold only valid answers:
-        the source nulls out (and so drops) its own missing codes,
-        since codebook labels don't define which values are missing.
+        Cleaning drops nothing:
+        responses hold a row for every respondent and variable read,
+        with each missing code moved out of `value`
+        into the `missing` kind the source maps it to
+        (`unrecorded` for a missing value without a code).
+        The codebook lists each variable's codes, labels, and kinds.
         """
-        # NOTE: nothing checks that missing codes were removed; for surveys
-        # whose missing codes are ordinary integers (e.g. anes' 0, 8, 9) one
-        # left in would count as an answer and stretch the observed range
-        # that `scale_to_pm_1` uses
+        # NOTE: nothing checks that every missing code was moved out of
+        # `value`; for surveys whose missing codes are ordinary integers
+        # (e.g. anes' 0, 8, 9) one left in would count as an answer and
+        # stretch the observed range that `scale_to_pm_1` uses
 
     def fetch(self, *, refresh: bool = False) -> Path:
         """Return the directory of raw files, downloading them if not cached."""

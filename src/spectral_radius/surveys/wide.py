@@ -22,6 +22,7 @@ def wide(
     One row per respondent with one column per variable, plus demographics and weight `w`.
 
     Rows are respondents from `min_year` onward (all years if `None`).
+    Every non-answer is null, whatever its `missing` kind.
     `encoding` (see `encodings`) is applied to each variable over those rows,
     so with the default it scales each variable's observed range onto [-1, 1].
     """
@@ -32,12 +33,13 @@ def wide(
     in_years = pl.lit(True) if min_year is None else pl.col("year") >= min_year
 
     respondents = data.respondents.filter(in_survey, in_years)
+    # a non-answer's `value` is null, so pivoting `value` alone nulls every kind
     answers = (
         data.responses.filter(in_survey, in_years, pl.col("variable").is_in(variables))
-        .with_columns(pl.col("variable").cast(pl.String))
+        .select("year", "respondent", pl.col("variable").cast(pl.String), "value")
         .pivot(on="variable", index=["year", "respondent"], values="value")
     )
-    # variables nobody answered get no column from the pivot
+    # variables the survey doesn't read get no column from the pivot
     unanswered = (
         pl.lit(None, dtype=pl.Int64).alias(v)
         for v in variables

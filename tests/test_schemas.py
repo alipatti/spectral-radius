@@ -69,12 +69,28 @@ def test_rejects_nonpositive_weight():
             codebook_row(labels={"value": [2, 1], "label": ["no", "yes"]}),
             "label_values_sorted_unique",
         ),
+        (
+            codebook_row(
+                missing={"code": [".d", ".i"], "label": ["dk"], "kind": ["dont_know"]}
+            ),
+            "missing_aligned",
+        ),
+        (
+            codebook_row(
+                missing={
+                    "code": [".d", ".d"],
+                    "label": ["dk", "can't choose"],
+                    "kind": ["dont_know", "dont_know"],
+                }
+            ),
+            "missing_codes_unique",
+        ),
         (codebook_row(years=[2000, 2000]), "years_sorted_unique"),
         (codebook_row(years=[2002, 2000]), "years_sorted_unique"),
     ],
 )
 def test_rejects_bad_codebook(row: dict[str, Any], rule: str):
-    """Reject misaligned labels and unsorted or repeated years."""
+    """Reject misaligned labels or missing codes, and unsorted or repeated years."""
     with pytest.raises(ValidationError, match=rule):
         Codebook.validate(frame(Codebook, [row]))
 
@@ -182,3 +198,61 @@ def test_require_demographic_rejects_undeclared():
 
     with pytest.raises(ValueError, match="'fake'.*'race'"):
         data.require_demographic("fake", "race")
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        RESPONSE | {"value": None},
+        RESPONSE | {"missing": "dont_know"},
+    ],
+    ids=["neither", "both"],
+)
+def test_rejects_response_without_exactly_one_of_value_and_missing(
+    response: dict[str, Any],
+):
+    """Require each response to hold either a value or a missing kind."""
+    with pytest.raises(ValidationError, match="value_or_missing"):
+        Responses.validate(frame(Responses, [response]))
+
+
+def test_accepts_listed_missing_kind():
+    """Accept a non-answer whose kind the variable's codebook entry lists."""
+    data = survey_data([RESPONDENT], [RESPONSE | {"value": None, "missing": "refused"}])
+
+    assert data.responses["missing"].to_list() == ["refused"]
+
+
+def validate(codebook: dict[str, Any], responses: list[dict[str, Any]]) -> SurveyData:
+    return SurveyData.validate(
+        codebook=frame(Codebook, [codebook]),
+        respondents=frame(Respondents, [RESPONDENT, RESPONDENT | {"respondent": 2}]),
+        responses=frame(Responses, responses),
+        demographics=declare_all([RESPONDENT]),
+    )
+
+
+def test_rejects_missing_kind_absent_from_codebook():
+    """Reject a non-answer whose kind the variable's codebook entry doesn't list."""
+    dont_know = RESPONSE | {"value": None, "missing": "dont_know"}
+
+    with pytest.raises(ValueError, match="missing kinds"):
+        validate(
+            codebook_row(),
+            [RESPONSE, dont_know | {"respondent": 2}],
+        )
+
+
+def test_accepts_unrecorded_kind_absent_from_codebook():
+    """Allow a missing value without a code, which no codebook can list."""
+    unrecorded = RESPONSE | {"respondent": 2, "value": None, "missing": "unrecorded"}
+
+    data = validate(codebook_row(), [RESPONSE, unrecorded])
+
+    assert len(data.responses) == 2
+
+
+def test_rejects_incomplete_responses():
+    """Require a row for every respondent and variable of the survey."""
+    with pytest.raises(ValueError, match="lack a row"):
+        validate(codebook_row(), [RESPONSE])

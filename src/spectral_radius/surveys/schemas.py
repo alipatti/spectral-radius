@@ -20,6 +20,35 @@ EDUCATION = pl.Enum(["No Bachelor's degree", "Bachelor's degree or more"])
 GEOGRAPHIC_REGION = pl.Enum(["Northeast", "Midwest", "South", "West"])
 TYPE_OF_NEIGHBORHOOD = pl.Enum(["Urban", "Suburban", "Rural"])
 
+# kinds of non-answer, shared by every source; each source maps its own missing
+# codes onto these, and its codebook keeps the codes and their published labels
+MISSING_KINDS: Mapping[str, str] = MappingProxyType(
+    {
+        "dont_know": "The respondent didn't know or couldn't choose.",
+        "no_answer": "The respondent was asked but gave no answer.",
+        "refused": "The respondent refused to answer.",
+        "skipped": "The respondent skipped the question on a self-completed form.",
+        "uncodeable": "The respondent answered, but the answer couldn't be coded.",
+        "unspecified": (
+            "A non-answer the source doesn't say the kind of "
+            "(e.g. the GSS's 'dk, na, iap')."
+        ),
+        "inapplicable": (
+            "The question wasn't asked of this respondent "
+            "(e.g. skipped by a filter or on another ballot), "
+            "or the respondent said it didn't apply to them."
+        ),
+        "not_asked_this_year": "The question wasn't asked of anyone that year.",
+        "not_released": "The answer was collected but isn't in this release.",
+        "not_imputable": "A derived or imputed value couldn't be computed.",
+        "other": "A source-specific reason, documented in the source's codebook.",
+        "unrecorded": "The source records a missing value without any code.",
+    }
+)
+MISSING = pl.Enum(list(MISSING_KINDS))
+# the kind that has no code in the source, so needn't appear in the codebook
+UNRECORDED = "unrecorded"
+
 RESPONDENT_KEY = ("survey", "year", "respondent")
 VARIABLE_KEY = ("survey", "variable")
 
@@ -39,9 +68,11 @@ class Codebook(dy.Schema):
     as documentation only.
     Labels needn't cover every valid value
     (the GSS labels only the endpoints of some scales, e.g. `eqwlth`),
-    so they don't define which values are missing:
-    each source nulls out its own missing codes while cleaning,
-    and `Responses` holds only the answers that remain.
+    so they don't define which values are missing.
+    `missing` lists the variable's missing codes instead:
+    each code as the source spells it (e.g. the GSS's `.d`),
+    its published label, and the `MISSING` kind the source maps it to.
+    Several codes may share a kind, but each code appears once.
     """
 
     survey = dy.Categorical(primary_key=True)
@@ -53,6 +84,14 @@ class Codebook(dy.Schema):
         {
             "value": dy.List(dy.Int64(), nullable=False),
             "label": dy.List(dy.String(), nullable=False),
+        },
+        nullable=False,
+    )
+    missing = dy.Struct(
+        {
+            "code": dy.List(dy.String(), nullable=False),
+            "label": dy.List(dy.String(), nullable=False),
+            "kind": dy.List(dy.Enum(MISSING.categories), nullable=False),
         },
         nullable=False,
     )
@@ -69,6 +108,19 @@ class Codebook(dy.Schema):
     @dy.rule()
     def label_values_sorted_unique(cls) -> pl.Expr:
         return _is_strictly_increasing(pl.col("labels").struct.field("value"))
+
+    @dy.rule()
+    def missing_aligned(cls) -> pl.Expr:
+        missing = pl.col("missing").struct
+        n_codes = missing.field("code").list.len()
+        return (n_codes == missing.field("label").list.len()) & (
+            n_codes == missing.field("kind").list.len()
+        )
+
+    @dy.rule()
+    def missing_codes_unique(cls) -> pl.Expr:
+        codes = pl.col("missing").struct.field("code")
+        return codes.list.n_unique() == codes.list.len()
 
 
 class Respondents(dy.Schema):
@@ -105,13 +157,27 @@ DEMOGRAPHICS: Mapping[str, pl.DataType] = MappingProxyType(
 
 
 class Responses(dy.Schema):
-    """One row per non-missing answer, in long format."""
+    """
+    One row per respondent and variable, in long format.
+
+    Each row holds either the answer's `value`
+    or, if there is none, the `missing` kind saying why (never both).
+    Nothing is dropped:
+    every respondent of a survey has a row for each variable
+    the survey reads into `Responses`,
+    including questions they were never asked (kind `inapplicable`).
+    """
 
     survey = dy.Categorical(primary_key=True)
     year = dy.Int64(primary_key=True)
     respondent = dy.Int64(primary_key=True)
     variable = dy.Categorical(primary_key=True)
-    value = dy.Int64(nullable=False)
+    value = dy.Int64(nullable=True)
+    missing = dy.Enum(MISSING.categories, nullable=True)
+
+    @dy.rule()
+    def value_or_missing(cls) -> pl.Expr:
+        return pl.col("value").is_null() != pl.col("missing").is_null()
 
 
 def _require_keys_in(
@@ -127,6 +193,54 @@ def _require_keys_in(
 
     if len(orphans):
         raise ValueError(f"{message} ({len(orphans)} keys, e.g. {orphans.row(0)})")
+
+
+def _require_complete(responses: pl.DataFrame, respondents: pl.DataFrame) -> None:
+    """
+    Require a response from every respondent to every variable of their survey.
+
+    Given unique keys and responses only from known respondents,
+    a survey's responses are complete exactly when they number
+    its respondents times its variables.
+    """
+    incomplete = (
+        responses.group_by("survey")
+        .agg(pl.len().alias("rows"), pl.col("variable").n_unique().alias("variables"))
+        .join(
+            respondents.group_by("survey").agg(pl.len().alias("respondents")),
+            on="survey",
+            how="left",
+            validate="1:1",
+        )
+        .filter(pl.col("rows") != pl.col("variables") * pl.col("respondents"))
+    )
+
+    if len(incomplete):
+        raise ValueError(
+            "Responses lack a row for some respondent and variable "
+            f"(surveys {incomplete['survey'].cast(pl.String).to_list()})"
+        )
+
+
+def _require_missing_kinds_in_codebook(
+    responses: pl.DataFrame,
+    codebook: pl.DataFrame,
+) -> None:
+    """Require each response's missing kind to be one its codebook entry lists."""
+    listed = codebook.select(
+        *VARIABLE_KEY,
+        pl.col("missing").struct.field("kind").alias("missing"),
+    ).explode("missing", empty_as_null=False)
+    used = responses.filter(pl.col("missing") != UNRECORDED).select(
+        *VARIABLE_KEY, "missing"
+    )
+
+    _require_keys_in(
+        used,
+        listed,
+        (*VARIABLE_KEY, "missing"),
+        "Responses with missing kinds their codebook entry doesn't list",
+    )
 
 
 def _require_declared(
@@ -186,6 +300,8 @@ class SurveyData:
             VARIABLE_KEY,
             "Responses to variables missing from Codebook",
         )
+        _require_complete(data.responses, data.respondents)
+        _require_missing_kinds_in_codebook(data.responses, data.codebook)
         _require_declared(data.respondents, data.demographics)
 
         return data
