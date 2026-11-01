@@ -9,14 +9,17 @@ from polars.testing import assert_frame_equal, assert_series_equal
 
 from spectral_radius.surveys import DEMOGRAPHICS, GSS, Respondents
 from spectral_radius.surveys.gss import (
+    OPINION_SCALES,
     QUESTIONS_SCHEMA,
     VARIABLES_SCHEMA,
+    YES_NO,
     codebook,
     respondents,
     responses,
     variables_table,
 )
-from spectral_radius.surveys.schemas import MISSING
+from spectral_radius.surveys.question_sets import question_variables
+from spectral_radius.surveys.schemas import MISSING, VariableScale
 
 RAW_DEMOGRAPHICS = [
     "sex",
@@ -176,7 +179,7 @@ def test_responses_keep_every_respondent_and_variable():
     )
 
     assert_frame_equal(
-        responses(raw, ["q"]).collect(),
+        responses(raw, {"q": ()}).collect(),
         pl.DataFrame(
             {
                 "year": [2000] * 3,
@@ -210,7 +213,7 @@ def test_responses_map_missing_codes_to_kinds(code: str | None, kind: str):
         q_null=pl.Series([code], dtype=pl.String),
     )
 
-    assert responses(raw, ["q"]).collect()["missing"].to_list() == [kind]
+    assert responses(raw, {"q": ()}).collect()["missing"].to_list() == [kind]
 
 
 def test_responses_reject_unknown_missing_code():
@@ -221,7 +224,7 @@ def test_responses_reject_unknown_missing_code():
     )
 
     with pytest.raises(pl.exceptions.InvalidOperationError):
-        responses(raw, ["q"]).collect()
+        responses(raw, {"q": ()}).collect()
 
 
 def test_codebook_years_and_labels():
@@ -239,7 +242,11 @@ def test_codebook_years_and_labels():
         schema=VARIABLES_SCHEMA,
     )
 
-    q = codebook(raw, variables, questions([]), ["q"]).collect().row(1, named=True)
+    q = (
+        codebook(raw, variables, questions([]), {"q": YES_NO}, {})
+        .collect()
+        .row(1, named=True)
+    )
 
     assert q["years"] == [2000, 2004]
     assert q["labels"] == {"value": [1, 2], "label": ["yes", "no"]}
@@ -250,17 +257,73 @@ def test_codebook_years_and_labels():
     }
 
 
-def test_codebook_marks_variables_read():
-    """Mark exactly the variables read into responses."""
+def test_codebook_lists_off_scale_codes_after_missing_codes():
+    """List each labeled off-scale code as a missing code of kind `off_scale`."""
+    raw = pl.LazyFrame({"year": [2000], "q": [1]})
+    variables = pl.LazyFrame(
+        {
+            "variable": ["q"],
+            "description": ["A question"],
+            "values": [[1, 2, 3, 5]],
+            "labels": [["yes", "no", "maybe", "other"]],
+            "missing_codes": [[".d"]],
+            "missing_labels": [["don't know"]],
+        },
+        schema=VARIABLES_SCHEMA,
+    )
+
+    q = codebook(raw, variables, questions([]), {}, {"q": {5, 3}}).collect()
+
+    assert q.row(0, named=True)["missing"] == {
+        "code": [".d", "3", "5"],
+        "label": ["don't know", "maybe", "other"],
+        "kind": ["dont_know", "off_scale", "off_scale"],
+    }
+
+
+def test_responses_move_off_scale_codes_out_of_value():
+    """Read an off-scale code as a non-answer of kind `off_scale`."""
+    raw = raw_gss({"sex": [1, 1, 1]}).with_columns(
+        q=pl.Series([1, 5, None], dtype=pl.Int8),
+        q_null=pl.Series([None, None, ".d"]),
+    )
+
+    out = responses(raw, {"q": {5}}).collect()
+
+    assert out.select("value", "missing").rows() == [
+        (1, None),
+        (None, "off_scale"),
+        (None, "dont_know"),
+    ]
+
+
+def test_codebook_marks_variables_read_with_their_scales():
+    """Mark exactly the variables read, giving only them a valid range and scale."""
     raw = pl.LazyFrame({"year": [2000], "q": [1], "r": [2]})
     variables = pl.LazyFrame(
         [{"variable": v} for v in ["year", "q", "r"]],
         schema=VARIABLES_SCHEMA,
     ).with_columns(cs.list().fill_null([]))
+    read = {"q": VariableScale(1, 7, "ordinal"), "r": YES_NO}
 
-    result = codebook(raw, variables, questions([]), ["r"]).collect()
+    result = codebook(raw, variables, questions([]), read, {}).collect()
 
-    assert result["in_responses"].to_list() == [False, False, True]
+    assert result.select("in_responses", "valid", "scale").rows() == [
+        (False, None, None),
+        (True, {"min": 1, "max": 7}, "ordinal"),
+        (True, {"min": 1, "max": 2}, "binary"),
+    ]
+
+
+def test_rejects_variable_without_declared_scale():
+    """Refuse to read a variable whose scale isn't declared."""
+    with pytest.raises(ValueError, match="without a declared scale"):
+        GSS(variables=["abany", "undeclared"])
+
+
+def test_declares_scale_of_every_question_set_variable():
+    """Declare a scale for every variable the question sets name."""
+    assert set(question_variables("gss")) <= OPINION_SCALES.keys()
 
 
 def test_codebook_question_text_matches_differently_named_variables():
@@ -272,7 +335,7 @@ def test_codebook_question_text_matches_differently_named_variables():
     ).with_columns(cs.list().fill_null([]))
     published = questions([("id_", "Respondent id"), ("RACDIF1", "Differences?")])
 
-    result = codebook(raw, variables, published, []).collect()
+    result = codebook(raw, variables, published, {}, {}).collect()
 
     assert result["question"].to_list() == ["Respondent id", "Differences?", None]
 

@@ -2,17 +2,22 @@
 Encodings of survey responses as numbers, for `wide`.
 
 Each maps a variable's raw codes (one column, over the rows of the wide frame)
-to analysis values; `ranks_at_t0` also reads the `year` and weight `w` columns.
+and its declared `VariableScale` to analysis values;
+`ranks_at_t0` also reads the `year` and weight `w` columns.
 """
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 import polars as pl
+
+from spectral_radius.surveys.schemas import VariableScale
+
+type Encoding = Callable[[pl.Expr, VariableScale], pl.Expr]
 
 # TODO: determine appropriate scaling for these
 
 
-def ranks_at_t0(x: pl.Expr) -> pl.Expr:
+def ranks_at_t0(x: pl.Expr, _scale: VariableScale) -> pl.Expr:
     x_at_t0 = x.filter(year=pl.col("year").min())
 
     def ranks(xw: Sequence[pl.Series]) -> pl.Series:
@@ -36,7 +41,7 @@ def ranks_at_t0(x: pl.Expr) -> pl.Expr:
     )
 
 
-def unit_variance_at_t0(x: pl.Expr) -> pl.Expr:
+def unit_variance_at_t0(x: pl.Expr, _scale: VariableScale) -> pl.Expr:
     # TODO: weight everything in here
 
     # center
@@ -47,6 +52,11 @@ def unit_variance_at_t0(x: pl.Expr) -> pl.Expr:
     return x / sd_at_t0
 
 
-def scale_to_pm_1(x: pl.Expr) -> pl.Expr:
-    """Scale the observed range onto [-1, 1]."""
+def scale_valid_range_to_pm_1(x: pl.Expr, scale: VariableScale) -> pl.Expr:
+    """Scale the declared range of valid values onto [-1, 1]."""
+    return (x - scale.min) / (scale.max - scale.min) * 2 - 1
+
+
+def scale_observed_range_to_pm_1(x: pl.Expr, _scale: VariableScale) -> pl.Expr:
+    """Scale the range observed over the wide frame's rows onto [-1, 1]."""
     return (x - x.min()) / (x.max() - x.min()) * 2 - 1

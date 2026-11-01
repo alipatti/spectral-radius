@@ -72,10 +72,10 @@ class Source(ABC):
         (`unrecorded` for a missing value without a code).
         The codebook lists each variable's codes, labels, and kinds.
         """
-        # NOTE: nothing checks that every missing code was moved out of
-        # `value`; for surveys whose missing codes are ordinary integers
-        # (e.g. anes' 0, 8, 9) one left in would count as an answer and
-        # stretch the observed range that `scale_to_pm_1` uses
+        # NOTE: a missing code left in `value` fails validation only if it
+        # lies outside the variable's declared valid range; for surveys whose
+        # missing codes are ordinary integers (e.g. anes' 0, 8, 9) one inside
+        # the range (e.g. 0 on a 0-to-10 scale) would count as an answer
 
     def fetch(self, *, refresh: bool = False) -> Path:
         """Return the directory of raw files, downloading them if not cached."""

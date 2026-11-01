@@ -3,7 +3,7 @@
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Self
+from typing import Literal, NamedTuple, Self
 
 import dataframely as dy
 import polars as pl
@@ -29,6 +29,10 @@ MISSING_KINDS: Mapping[str, str] = MappingProxyType(
         "refused": "The respondent refused to answer.",
         "skipped": "The respondent skipped the question on a self-completed form.",
         "uncodeable": "The respondent answered, but the answer couldn't be coded.",
+        "off_scale": (
+            "The respondent gave a coded answer that isn't on the question's scale "
+            "(e.g. a volunteered 'depends')."
+        ),
         "unspecified": (
             "A non-answer the source doesn't say the kind of "
             "(e.g. the GSS's 'dk, na, iap')."
@@ -48,6 +52,48 @@ MISSING_KINDS: Mapping[str, str] = MappingProxyType(
 MISSING = pl.Enum(list(MISSING_KINDS))
 # the kind that has no code in the source, so needn't appear in the codebook
 UNRECORDED = "unrecorded"
+
+type ScaleKind = Literal["ordinal", "binary", "categorical"]
+# how a variable's values relate: ordered, two-valued, or unordered codes
+SCALE = pl.Enum(["ordinal", "binary", "categorical"])
+
+
+class VariableScale(NamedTuple):
+    """A variable's range of valid values, `min` to `max`, and its kind of scale."""
+
+    min: int
+    max: int
+    scale: ScaleKind
+
+
+def read_columns(
+    variable: pl.Expr,
+    read: Mapping[str, VariableScale],
+) -> tuple[pl.Expr, pl.Expr, pl.Expr]:
+    """
+    The codebook's `in_responses`, `valid`, and `scale` columns.
+
+    `variable` names each codebook row's variable (as a string),
+    and `read` maps each variable read into `Responses` to its declared scale;
+    the other variables are null in `valid` and `scale`.
+    """
+    in_responses = variable.is_in(list(read))
+
+    def lookup(values: Iterable[object], dtype: pl.DataType) -> pl.Expr:
+        mapping = dict(zip(read, values, strict=True))
+        return variable.replace_strict(mapping, default=None, return_dtype=dtype)
+
+    valid = pl.struct(
+        min=lookup((s.min for s in read.values()), pl.Int64()),
+        max=lookup((s.max for s in read.values()), pl.Int64()),
+    )
+
+    return (
+        in_responses.alias("in_responses"),
+        pl.when(in_responses).then(valid).alias("valid"),
+        lookup((s.scale for s in read.values()), SCALE).alias("scale"),
+    )
+
 
 RESPONDENT_KEY = ("survey", "year", "respondent")
 VARIABLE_KEY = ("survey", "variable")
@@ -73,7 +119,11 @@ class Codebook(dy.Schema):
     each code as the source spells it (e.g. the GSS's `.d`),
     its published label, and the `MISSING` kind the source maps it to.
     Several codes may share a kind, but each code appears once.
-    `in_responses` marks the variables the source reads into `Responses`.
+    `in_responses` marks the variables the source reads into `Responses`;
+    each of those has its range of `valid` values (inclusive)
+    and its kind of `scale`, both declared by the source
+    rather than inferred from the data.
+    Every value in `Responses` lies in its variable's valid range.
     """
 
     survey = dy.Categorical(primary_key=True)
@@ -97,6 +147,11 @@ class Codebook(dy.Schema):
         nullable=False,
     )
     in_responses = dy.Bool(nullable=False)
+    valid = dy.Struct(
+        {"min": dy.Int64(nullable=False), "max": dy.Int64(nullable=False)},
+        nullable=True,
+    )
+    scale = dy.Enum(SCALE.categories, nullable=True)
 
     @dy.rule()
     def years_sorted_unique(cls) -> pl.Expr:
@@ -118,6 +173,22 @@ class Codebook(dy.Schema):
         return (n_codes == missing.field("label").list.len()) & (
             n_codes == missing.field("kind").list.len()
         )
+
+    @dy.rule()
+    def read_variables_scaled(cls) -> pl.Expr:
+        scaled = pl.col("valid").is_not_null() & pl.col("scale").is_not_null()
+        return pl.col("in_responses").not_() | scaled
+
+    @dy.rule()
+    def valid_range_increasing(cls) -> pl.Expr:
+        valid = pl.col("valid").struct
+        return pl.col("valid").is_null() | (valid.field("min") < valid.field("max"))
+
+    @dy.rule()
+    def binary_spans_two_values(cls) -> pl.Expr:
+        valid = pl.col("valid").struct
+        two_values = (valid.field("max") - valid.field("min") == 1).fill_null(False)
+        return pl.col("scale").ne_missing("binary") | two_values
 
     @dy.rule()
     def missing_codes_unique(cls) -> pl.Expr:
@@ -258,6 +329,36 @@ def _require_missing_kinds_in_codebook(
     )
 
 
+def _require_values_valid(
+    responses: pl.DataFrame,
+    codebook: pl.DataFrame,
+) -> None:
+    """Require every response value to lie in its variable's valid range."""
+    valid = pl.col("valid").struct
+    invalid = (
+        responses.group_by(VARIABLE_KEY)
+        .agg(
+            pl.col("value").min().alias("lowest"),
+            pl.col("value").max().alias("highest"),
+        )
+        .join(codebook.select(*VARIABLE_KEY, "valid"), on=VARIABLE_KEY, validate="1:1")
+        .filter(
+            (pl.col("lowest") < valid.field("min"))
+            | (pl.col("highest") > valid.field("max"))
+        )
+    )
+
+    if len(invalid):
+        raise ValueError(
+            "Responses with values outside their variable's valid range: "
+            + "; ".join(
+                f"{survey}.{variable} has {lowest} to {highest}, "
+                f"valid {valid['min']} to {valid['max']}"
+                for survey, variable, lowest, highest, valid in invalid.iter_rows()
+            )
+        )
+
+
 def _require_declared(
     respondents: pl.DataFrame,
     demographics: Mapping[str, frozenset[str]],
@@ -317,6 +418,7 @@ class SurveyData:
         )
         _require_complete(data.responses, data.respondents, data.codebook)
         _require_missing_kinds_in_codebook(data.responses, data.codebook)
+        _require_values_valid(data.responses, data.codebook)
         _require_declared(data.respondents, data.demographics)
 
         return data

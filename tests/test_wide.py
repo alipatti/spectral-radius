@@ -3,7 +3,8 @@ import pytest
 from helpers import survey_data
 from polars.testing import assert_series_equal
 
-from spectral_radius.surveys import DEMOGRAPHICS, SurveyData, wide
+from spectral_radius.surveys import DEMOGRAPHICS, SurveyData, VariableScale, wide
+from spectral_radius.surveys.encodings import scale_observed_range_to_pm_1
 
 
 def respondent(survey: str, year: int, id: int, weight: float = 1.0) -> dict:
@@ -26,6 +27,10 @@ def answer(
     }
 
 
+def identity(x: pl.Expr, _scale: VariableScale) -> pl.Expr:
+    return x
+
+
 @pytest.fixture
 def data() -> SurveyData:
     return survey_data(
@@ -44,42 +49,63 @@ def data() -> SurveyData:
             answer("a", 2010, 1, "q", 5),
             answer("b", 2000, 1, "q", 100),
         ],
+        scales={
+            ("a", "q"): VariableScale(0, 10, "ordinal"),
+            ("a", "r"): VariableScale(1, 5, "categorical"),
+        },
     )
 
 
 def test_columns(data: SurveyData):
     """Give year, demographics, one column per unique variable, and weight."""
-    columns = wide(data, "a", ["q", "r", "q"]).columns
+    columns = wide(data, "a", ["q", "r", "q"], allow_categorical=["r"]).columns
 
     assert columns == ["year", *DEMOGRAPHICS, "q", "r", "w"]
 
 
 def test_keeps_every_respondent_of_survey(data: SurveyData):
     """Keep respondents with no answers, and only those of the survey."""
-    out = wide(data, "a", ["r"], encoding=lambda x: x)
+    out = wide(data, "a", ["r"], encoding=identity, allow_categorical=["r"])
 
     assert out["year"].to_list() == [1990, 2000, 2000, 2010]
     assert out["r"].to_list() == [None, None, 5, None]
     assert out["w"].to_list() == [2.0, 1.0, 1.0, 1.0]
 
 
-def test_encodes_over_observed_range_after_year_filter(data: SurveyData):
-    """Scale onto [-1, 1] using the range observed from `min_year` onward."""
+def test_encodes_valid_range_by_default(data: SurveyData):
+    """Scale the declared valid range onto [-1, 1], whatever range is observed."""
     out = wide(data, "a", ["q"], min_year=2000)
+
+    assert_series_equal(out["q"], pl.Series("q", [-0.8, -0.4, 0.0]))
+
+
+def test_observed_range_encoding_uses_rows_after_year_filter(data: SurveyData):
+    """Scale onto [-1, 1] the range observed from `min_year` onward."""
+    out = wide(data, "a", ["q"], min_year=2000, encoding=scale_observed_range_to_pm_1)
 
     assert_series_equal(out["q"], pl.Series("q", [-1.0, 0.0, 1.0]))
 
 
-def test_unanswered_variable_is_null(data: SurveyData):
-    """Give a null column for a variable no respondent answered."""
-    out = wide(data, "a", ["unasked"], encoding=lambda x: x)
+def test_rejects_variable_survey_doesnt_read(data: SurveyData):
+    """Refuse a variable the survey doesn't read, rather than giving it nulls."""
+    with pytest.raises(ValueError, match=r"'b' doesn't read variables \['r'\]"):
+        wide(data, "b", ["q", "r"])
 
-    assert out["unasked"].dtype == pl.Int64
-    assert out["unasked"].null_count() == len(out)
+
+def test_rejects_categorical_variable_not_allowed(data: SurveyData):
+    """Refuse a categorical variable unless explicitly allowed."""
+    with pytest.raises(ValueError, match=r"\['r'\] have categorical scales"):
+        wide(data, "a", ["q", "r"])
+
+
+def test_rejects_allowing_non_categorical_variable(data: SurveyData):
+    """Refuse an allowance for a variable that isn't categorical."""
+    with pytest.raises(ValueError, match=r"\['q'\] are allowed as categorical"):
+        wide(data, "a", ["q", "r"], allow_categorical=["q", "r"])
 
 
 def test_non_answers_are_null():
-    """Null every missing kind, without it counting toward the encoded range."""
+    """Null every missing kind."""
     data = survey_data(
         [respondent("a", 2000, i) for i in (1, 2, 3)],
         [
@@ -87,6 +113,7 @@ def test_non_answers_are_null():
             answer("a", 2000, 2, "q", 4),
             answer("a", 2000, 3, "q", None) | {"missing": "dont_know"},
         ],
+        scales={("a", "q"): VariableScale(0, 4, "ordinal")},
     )
 
     out = wide(data, "a", ["q"])

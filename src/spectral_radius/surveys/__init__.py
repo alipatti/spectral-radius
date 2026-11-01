@@ -9,6 +9,7 @@ from spectral_radius.surveys.schemas import (
     Respondents,
     Responses,
     SurveyData,
+    VariableScale,
 )
 from spectral_radius.surveys.source import CleanFrames, Source
 from spectral_radius.surveys.wide import wide
@@ -24,6 +25,7 @@ __all__ = [
     "Responses",
     "Source",
     "SurveyData",
+    "VariableScale",
     "build",
     "load",
     "question_variables",

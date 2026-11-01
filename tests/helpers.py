@@ -12,12 +12,14 @@ from spectral_radius.surveys import (
     Responses,
     SurveyData,
 )
-from spectral_radius.surveys.schemas import UNRECORDED
+from spectral_radius.surveys.schemas import UNRECORDED, VariableScale
 
 type Rows = Sequence[Mapping[str, Any]]
 
 # the kind given to the responses `survey_data` fills in
 FILLER = "no_answer"
+# a scale wide enough for any test value, for variables not given their own
+WIDE_SCALE = VariableScale(0, 100, "ordinal")
 
 
 def frame(schema: type[Codebook | Respondents | Responses], rows: Rows) -> pl.DataFrame:
@@ -30,9 +32,13 @@ def codebook_rows(
     variables: Sequence[str],
     kinds: Iterable[str] = (),
     *,
-    in_responses: bool = True,
+    scale: VariableScale | None = WIDE_SCALE,
 ) -> list[dict[str, Any]]:
-    """Codebook rows listing each of `kinds` as a missing code named after itself."""
+    """
+    Codebook rows listing each of `kinds` as a missing code named after itself.
+
+    The variables are read into responses with `scale`, or not read if it's `None`.
+    """
     kinds = sorted(kinds)
 
     return [
@@ -42,7 +48,9 @@ def codebook_rows(
             "years": [],
             "labels": {"value": [], "label": []},
             "missing": {"code": kinds, "label": kinds, "kind": kinds},
-            "in_responses": in_responses,
+            "in_responses": scale is not None,
+            "valid": scale and {"min": scale.min, "max": scale.max},
+            "scale": scale and scale.scale,
         }
         for v in variables
     ]
@@ -83,14 +91,17 @@ def survey_data(
     respondents: Rows,
     responses: Rows,
     demographics: Mapping[str, frozenset[str]] | None = None,
+    scales: Mapping[tuple[str, str], VariableScale] | None = None,
 ) -> SurveyData:
     """
     Validated data, with `responses` completed with `FILLER` rows.
 
     The codebook lists exactly the variables answered,
-    each with the missing kinds its responses use.
+    each with the missing kinds its responses use
+    and its scale in `scales` (keyed by survey and variable), else `WIDE_SCALE`.
     Each survey declares every demographic unless `demographics` says otherwise.
     """
+    scales = scales or {}
     responses = complete(respondents, responses)
     kinds: dict[tuple[str, str], set[str]] = {}
 
@@ -107,7 +118,9 @@ def survey_data(
             [
                 row
                 for (s, v), used in sorted(kinds.items())
-                for row in codebook_rows(s, [v], used)
+                for row in codebook_rows(
+                    s, [v], used, scale=scales.get((s, v), WIDE_SCALE)
+                )
             ],
         ),
         respondents=frame(Respondents, respondents),

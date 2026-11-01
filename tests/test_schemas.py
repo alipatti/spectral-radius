@@ -87,10 +87,20 @@ def test_rejects_nonpositive_weight():
         ),
         (codebook_row(years=[2000, 2000]), "years_sorted_unique"),
         (codebook_row(years=[2002, 2000]), "years_sorted_unique"),
+        (codebook_row(valid=None), "read_variables_scaled"),
+        (codebook_row(scale=None), "read_variables_scaled"),
+        (codebook_row(valid={"min": 3, "max": 3}), "valid_range_increasing"),
+        (
+            codebook_row(valid={"min": 1, "max": 3}, scale="binary"),
+            "binary_spans_two_values",
+        ),
     ],
 )
 def test_rejects_bad_codebook(row: dict[str, Any], rule: str):
-    """Reject misaligned labels or missing codes, and unsorted or repeated years."""
+    """
+    Reject misaligned labels or missing codes, unsorted or repeated years,
+    and variables read without a valid range and scale or with a bad one.
+    """
     with pytest.raises(ValidationError, match=rule):
         Codebook.validate(frame(Codebook, [row]))
 
@@ -275,7 +285,7 @@ def test_rejects_response_to_variable_not_read():
     """Reject responses to a variable the codebook doesn't mark as read."""
     with pytest.raises(ValueError, match="doesn't mark `in_responses`"):
         validate_codebook(
-            [codebook_row(), codebook_row(variable="r", in_responses=False)],
+            [codebook_row(), codebook_rows("fake", ["r"], scale=None)[0]],
             [
                 RESPONSE,
                 RESPONSE | {"respondent": 2},
@@ -285,10 +295,30 @@ def test_rejects_response_to_variable_not_read():
         )
 
 
+@pytest.mark.parametrize("value", [0, 101])
+def test_rejects_value_outside_valid_range(value: int):
+    """Reject a response value outside its variable's valid range, naming both."""
+    with pytest.raises(ValueError, match=r"fake.q has .*, valid 1 to 100"):
+        validate_codebook(
+            [codebook_row(valid={"min": 1, "max": 100})],
+            [RESPONSE, RESPONSE | {"respondent": 2, "value": value}],
+        )
+
+
+def test_accepts_values_at_ends_of_valid_range():
+    """Accept response values equal to the valid range's ends."""
+    data = validate_codebook(
+        [codebook_row(valid={"min": 1, "max": 2}, scale="binary")],
+        [RESPONSE, RESPONSE | {"respondent": 2, "value": 2}],
+    )
+
+    assert data.responses["value"].to_list() == [1, 2]
+
+
 def test_accepts_unread_variable_without_responses():
     """Allow codebook variables that aren't read, such as demographics."""
     data = validate_codebook(
-        [codebook_row(), codebook_row(variable="sex", in_responses=False)],
+        [codebook_row(), codebook_rows("fake", ["sex"], scale=None)[0]],
         [RESPONSE, RESPONSE | {"respondent": 2}],
     )
 

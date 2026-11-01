@@ -109,6 +109,16 @@ GSS_OPINION_CATEGORIES: dict[str, list[str]] = {
 QUESTION_SETS: dict[str, dict[str, list[str]]] = {"gss": GSS_OPINION_CATEGORIES}
 
 
+# the variables of each survey's question sets with categorical scales
+# that the analysis nonetheless encodes as if ordinal (see `wide`)
+ALLOWED_CATEGORICAL: dict[str, frozenset[str]] = {
+    # NOTE: the codes of `courts` (1 too harshly, 2 not harshly enough,
+    # 3 about right) aren't in the order of its answers; it is encoded by code,
+    # as the paper always has, pending a decision to recode or drop it
+    "gss": frozenset({"courts"}),
+}
+
+
 def question_variables(survey: str) -> list[str]:
     """Unique variables named by any category of a survey, in first-seen order."""
     return list(dict.fromkeys(v for vs in QUESTION_SETS[survey].values() for v in vs))
