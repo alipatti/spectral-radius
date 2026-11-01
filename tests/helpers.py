@@ -29,6 +29,8 @@ def codebook_rows(
     survey: str,
     variables: Sequence[str],
     kinds: Iterable[str] = (),
+    *,
+    in_responses: bool = True,
 ) -> list[dict[str, Any]]:
     """Codebook rows listing each of `kinds` as a missing code named after itself."""
     kinds = sorted(kinds)
@@ -40,6 +42,7 @@ def codebook_rows(
             "years": [],
             "labels": {"value": [], "label": []},
             "missing": {"code": kinds, "label": kinds, "kind": kinds},
+            "in_responses": in_responses,
         }
         for v in variables
     ]

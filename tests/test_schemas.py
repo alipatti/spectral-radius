@@ -223,9 +223,13 @@ def test_accepts_listed_missing_kind():
     assert data.responses["missing"].to_list() == ["refused"]
 
 
-def validate(codebook: dict[str, Any], responses: list[dict[str, Any]]) -> SurveyData:
+def validate_codebook(
+    codebook: list[dict[str, Any]],
+    responses: list[dict[str, Any]],
+) -> SurveyData:
+    """Validate against two respondents of survey `fake`."""
     return SurveyData.validate(
-        codebook=frame(Codebook, [codebook]),
+        codebook=frame(Codebook, codebook),
         respondents=frame(Respondents, [RESPONDENT, RESPONDENT | {"respondent": 2}]),
         responses=frame(Responses, responses),
         demographics=declare_all([RESPONDENT]),
@@ -237,8 +241,8 @@ def test_rejects_missing_kind_absent_from_codebook():
     dont_know = RESPONSE | {"value": None, "missing": "dont_know"}
 
     with pytest.raises(ValueError, match="missing kinds"):
-        validate(
-            codebook_row(),
+        validate_codebook(
+            [codebook_row()],
             [RESPONSE, dont_know | {"respondent": 2}],
         )
 
@@ -247,7 +251,7 @@ def test_accepts_unrecorded_kind_absent_from_codebook():
     """Allow a missing value without a code, which no codebook can list."""
     unrecorded = RESPONSE | {"respondent": 2, "value": None, "missing": "unrecorded"}
 
-    data = validate(codebook_row(), [RESPONSE, unrecorded])
+    data = validate_codebook([codebook_row()], [RESPONSE, unrecorded])
 
     assert len(data.responses) == 2
 
@@ -255,4 +259,37 @@ def test_accepts_unrecorded_kind_absent_from_codebook():
 def test_rejects_incomplete_responses():
     """Require a row for every respondent and variable of the survey."""
     with pytest.raises(ValueError, match="lack a row"):
-        validate(codebook_row(), [RESPONSE])
+        validate_codebook([codebook_row()], [RESPONSE])
+
+
+def test_rejects_variable_read_but_without_responses():
+    """Reject a codebook variable marked as read that has no responses at all."""
+    with pytest.raises(ValueError, match="lack a row"):
+        validate_codebook(
+            [codebook_row(), codebook_row(variable="dropped")],
+            [RESPONSE, RESPONSE | {"respondent": 2}],
+        )
+
+
+def test_rejects_response_to_variable_not_read():
+    """Reject responses to a variable the codebook doesn't mark as read."""
+    with pytest.raises(ValueError, match="doesn't mark `in_responses`"):
+        validate_codebook(
+            [codebook_row(), codebook_row(variable="r", in_responses=False)],
+            [
+                RESPONSE,
+                RESPONSE | {"respondent": 2},
+                RESPONSE | {"variable": "r"},
+                RESPONSE | {"respondent": 2, "variable": "r"},
+            ],
+        )
+
+
+def test_accepts_unread_variable_without_responses():
+    """Allow codebook variables that aren't read, such as demographics."""
+    data = validate_codebook(
+        [codebook_row(), codebook_row(variable="sex", in_responses=False)],
+        [RESPONSE, RESPONSE | {"respondent": 2}],
+    )
+
+    assert data.codebook["in_responses"].to_list() == [True, False]

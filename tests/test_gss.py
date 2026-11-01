@@ -239,7 +239,7 @@ def test_codebook_years_and_labels():
         schema=VARIABLES_SCHEMA,
     )
 
-    q = codebook(raw, variables, questions([])).collect().row(1, named=True)
+    q = codebook(raw, variables, questions([]), ["q"]).collect().row(1, named=True)
 
     assert q["years"] == [2000, 2004]
     assert q["labels"] == {"value": [1, 2], "label": ["yes", "no"]}
@@ -248,6 +248,19 @@ def test_codebook_years_and_labels():
         "label": ["don't know", "iap"],
         "kind": ["dont_know", "inapplicable"],
     }
+
+
+def test_codebook_marks_variables_read():
+    """Mark exactly the variables read into responses."""
+    raw = pl.LazyFrame({"year": [2000], "q": [1], "r": [2]})
+    variables = pl.LazyFrame(
+        [{"variable": v} for v in ["year", "q", "r"]],
+        schema=VARIABLES_SCHEMA,
+    ).with_columns(cs.list().fill_null([]))
+
+    result = codebook(raw, variables, questions([]), ["r"]).collect()
+
+    assert result["in_responses"].to_list() == [False, False, True]
 
 
 def test_codebook_question_text_matches_differently_named_variables():
@@ -259,7 +272,7 @@ def test_codebook_question_text_matches_differently_named_variables():
     ).with_columns(cs.list().fill_null([]))
     published = questions([("id_", "Respondent id"), ("RACDIF1", "Differences?")])
 
-    result = codebook(raw, variables, published).collect()
+    result = codebook(raw, variables, published, []).collect()
 
     assert result["question"].to_list() == ["Respondent id", "Differences?", None]
 

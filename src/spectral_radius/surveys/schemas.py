@@ -73,6 +73,7 @@ class Codebook(dy.Schema):
     each code as the source spells it (e.g. the GSS's `.d`),
     its published label, and the `MISSING` kind the source maps it to.
     Several codes may share a kind, but each code appears once.
+    `in_responses` marks the variables the source reads into `Responses`.
     """
 
     survey = dy.Categorical(primary_key=True)
@@ -95,6 +96,7 @@ class Codebook(dy.Schema):
         },
         nullable=False,
     )
+    in_responses = dy.Bool(nullable=False)
 
     @dy.rule()
     def years_sorted_unique(cls) -> pl.Expr:
@@ -195,29 +197,42 @@ def _require_keys_in(
         raise ValueError(f"{message} ({len(orphans)} keys, e.g. {orphans.row(0)})")
 
 
-def _require_complete(responses: pl.DataFrame, respondents: pl.DataFrame) -> None:
+def _require_complete(
+    responses: pl.DataFrame,
+    respondents: pl.DataFrame,
+    codebook: pl.DataFrame,
+) -> None:
     """
-    Require a response from every respondent to every variable of their survey.
+    Require one response from every respondent to each variable read, and no others.
 
-    Given unique keys and responses only from known respondents,
-    a survey's responses are complete exactly when they number
-    its respondents times its variables.
+    The variables read are those the codebook marks `in_responses`.
+    Given unique keys and responses only from known respondents
+    to variables read, a survey's responses are complete exactly when
+    they number its respondents times its variables read.
     """
+    read = codebook.filter("in_responses")
+
+    _require_keys_in(
+        responses,
+        read,
+        VARIABLE_KEY,
+        "Responses to variables the codebook doesn't mark `in_responses`",
+    )
+
+    def count(frame: pl.DataFrame, name: str) -> pl.DataFrame:
+        return frame.group_by("survey").agg(pl.len().alias(name))
+
     incomplete = (
-        responses.group_by("survey")
-        .agg(pl.len().alias("rows"), pl.col("variable").n_unique().alias("variables"))
-        .join(
-            respondents.group_by("survey").agg(pl.len().alias("respondents")),
-            on="survey",
-            how="left",
-            validate="1:1",
-        )
+        count(respondents, "respondents")
+        .join(count(read, "variables"), on="survey", how="full", coalesce=True)
+        .join(count(responses, "rows"), on="survey", how="full", coalesce=True)
+        .fill_null(0)
         .filter(pl.col("rows") != pl.col("variables") * pl.col("respondents"))
     )
 
     if len(incomplete):
         raise ValueError(
-            "Responses lack a row for some respondent and variable "
+            "Responses lack a row for some respondent and variable read "
             f"(surveys {incomplete['survey'].cast(pl.String).to_list()})"
         )
 
@@ -300,7 +315,7 @@ class SurveyData:
             VARIABLE_KEY,
             "Responses to variables missing from Codebook",
         )
-        _require_complete(data.responses, data.respondents)
+        _require_complete(data.responses, data.respondents, data.codebook)
         _require_missing_kinds_in_codebook(data.responses, data.codebook)
         _require_declared(data.respondents, data.demographics)
 

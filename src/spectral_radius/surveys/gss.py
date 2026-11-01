@@ -6,7 +6,7 @@ Codes are documented at https://gssdataexplorer.norc.org/variables/vfilter.
 
 import math
 import tempfile
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from pathlib import Path
 from typing import Any, override
 from zipfile import ZipFile
@@ -333,7 +333,10 @@ def codebook(
     gss: pl.LazyFrame,
     variables: pl.LazyFrame,
     questions: pl.LazyFrame,
+    read: Collection[str],
 ) -> pl.LazyFrame:
+    """One row per variable of the GSS, marking the variables `read` into responses."""
+
     def by_variable(left: pl.LazyFrame, right: pl.LazyFrame) -> pl.LazyFrame:
         return left.join(
             right,
@@ -357,6 +360,7 @@ def codebook(
                 label="missing_labels",
                 kind=pl.col("missing_codes").list.eval(missing_kind(pl.element())),
             ).alias("missing"),
+            pl.col("variable").is_in(list(read)).alias("in_responses"),
         )
     )
 
@@ -461,6 +465,7 @@ class GSS(Source):
                 gss,
                 variables,
                 pl.scan_parquet(raw / QUESTIONS_FILE),
+                self.variables,
             ),
             respondents=respondents(gss),
             responses=responses(gss, self.variables),
