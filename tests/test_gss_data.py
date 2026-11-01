@@ -11,7 +11,7 @@ from pathlib import Path
 import polars as pl
 import pytest
 
-from spectral_radius.analysis import analysis_frame
+from spectral_radius.analysis import analysis_frame, survey_data
 from spectral_radius.constants import START_YEAR
 from spectral_radius.surveys import DEMOGRAPHICS, GSS, question_variables
 
@@ -19,6 +19,14 @@ pytestmark = pytest.mark.data
 
 REPO = Path(__file__).parents[1]
 VARIABLES = question_variables("gss")
+
+
+@pytest.fixture(scope="module")
+def responses() -> pl.DataFrame:
+    assert GSS(root=REPO / "data").raw_dir.exists(), "Missing raw GSS data"
+
+    with contextlib.chdir(REPO):
+        return survey_data().responses.filter(pl.col("survey") == "gss")
 
 
 @pytest.fixture(scope="module")
@@ -47,3 +55,17 @@ def test_analysis_frame_scales_variables_to_pm_1(frame: pl.DataFrame):
 
     assert variables.min().row(0) == (-1.0,) * len(VARIABLES)
     assert variables.max().row(0) == (1.0,) * len(VARIABLES)
+
+
+def test_responses_cover_every_respondent_and_variable(responses: pl.DataFrame):
+    """Keep a row for every respondent and question-set variable."""
+    n_respondents = responses.select("year", "respondent").n_unique()
+
+    assert len(responses) == n_respondents * len(VARIABLES)
+
+
+def test_responses_record_dont_knows_and_inapplicables(responses: pl.DataFrame):
+    """Record "don't know" and "inapplicable" as kinds, not as dropped rows."""
+    kinds = set(responses["missing"].drop_nulls().cast(pl.String))
+
+    assert {"dont_know", "inapplicable"} <= kinds

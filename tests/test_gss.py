@@ -1,18 +1,22 @@
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 from typing import Any
 
 import polars as pl
+import polars.selectors as cs
 import pytest
 from polars.testing import assert_frame_equal, assert_series_equal
 
 from spectral_radius.surveys import DEMOGRAPHICS, GSS, Respondents
 from spectral_radius.surveys.gss import (
     QUESTIONS_SCHEMA,
+    VARIABLES_SCHEMA,
     codebook,
     respondents,
     responses,
     variables_table,
 )
+from spectral_radius.surveys.schemas import MISSING
 
 RAW_DEMOGRAPHICS = [
     "sex",
@@ -164,20 +168,60 @@ def test_respondents_match_schema():
     }
 
 
-def test_responses_are_long_without_nulls():
-    """Keep one row per non-null answer."""
-    raw = raw_gss({"sex": [1, 2]}).with_columns(
-        q1=pl.Series([1, None]),
-        q2=pl.Series([None, None], dtype=pl.Int64),
+def test_responses_keep_every_respondent_and_variable():
+    """Give a row per respondent and variable, with a kind for each non-answer."""
+    raw = raw_gss({"sex": [1, 2, 1]}).with_columns(
+        q=pl.Series([1, None, None], dtype=pl.Int8),
+        q_null=pl.Series([None, ".d", ".i"]),
     )
 
     assert_frame_equal(
-        responses(raw, ["q1", "q2"]).collect(),
+        responses(raw, ["q"]).collect(),
         pl.DataFrame(
-            {"year": [2000], "respondent": [1], "variable": ["q1"], "value": [1]},
-            schema_overrides={"variable": pl.Categorical},
+            {
+                "year": [2000] * 3,
+                "respondent": [1, 2, 3],
+                "variable": ["q"] * 3,
+                "value": [1, None, None],
+                "missing": [None, "dont_know", "inapplicable"],
+            },
+            schema_overrides={"variable": pl.Categorical, "missing": MISSING},
         ),
     )
+
+
+@pytest.mark.parametrize(
+    ("code", "kind"),
+    [
+        (".d", "dont_know"),
+        (".n", "no_answer"),
+        (".i", "inapplicable"),
+        (".j", "inapplicable"),
+        (".m", "unspecified"),
+        (".y", "not_asked_this_year"),
+        (".z", "other"),
+        (None, "unrecorded"),
+    ],
+)
+def test_responses_map_missing_codes_to_kinds(code: str | None, kind: str):
+    """Map each missing code to its kind, and a bare null to `unrecorded`."""
+    raw = raw_gss({"sex": [1]}).with_columns(
+        q=pl.Series([None], dtype=pl.Int8),
+        q_null=pl.Series([code], dtype=pl.String),
+    )
+
+    assert responses(raw, ["q"]).collect()["missing"].to_list() == [kind]
+
+
+def test_responses_reject_unknown_missing_code():
+    """Fail on a missing code with no kind, rather than guessing one."""
+    raw = raw_gss({"sex": [1]}).with_columns(
+        q=pl.Series([None], dtype=pl.Int8),
+        q_null=pl.Series([".q"]),
+    )
+
+    with pytest.raises(pl.exceptions.InvalidOperationError):
+        responses(raw, ["q"]).collect()
 
 
 def test_codebook_years_and_labels():
@@ -189,32 +233,30 @@ def test_codebook_years_and_labels():
             "description": ["Year", "A question"],
             "values": [[], [1, 2]],
             "labels": [[], ["yes", "no"]],
+            "missing_codes": [[], [".d", ".i"]],
+            "missing_labels": [[], ["don't know", "iap"]],
         },
-        schema_overrides={"values": pl.List(pl.Int64), "labels": pl.List(pl.String)},
+        schema=VARIABLES_SCHEMA,
     )
 
     q = codebook(raw, variables, questions([])).collect().row(1, named=True)
 
     assert q["years"] == [2000, 2004]
     assert q["labels"] == {"value": [1, 2], "label": ["yes", "no"]}
+    assert q["missing"] == {
+        "code": [".d", ".i"],
+        "label": ["don't know", "iap"],
+        "kind": ["dont_know", "inapplicable"],
+    }
 
 
 def test_codebook_question_text_matches_differently_named_variables():
     """Match the explorer's upper-case and underscored names to the data's."""
     raw = pl.LazyFrame({"year": [2000], "id": [1], "racdif1": [1], "q": [1]})
     variables = pl.LazyFrame(
-        {
-            "variable": ["id", "racdif1", "q"],
-            "description": [None] * 3,
-            "values": [[]] * 3,
-            "labels": [[]] * 3,
-        },
-        schema_overrides={
-            "description": pl.String,
-            "values": pl.List(pl.Int64),
-            "labels": pl.List(pl.String),
-        },
-    )
+        [{"variable": v} for v in ["id", "racdif1", "q"]],
+        schema=VARIABLES_SCHEMA,
+    ).with_columns(cs.list().fill_null([]))
     published = questions([("id_", "Respondent id"), ("RACDIF1", "Differences?")])
 
     result = codebook(raw, variables, published).collect()
@@ -261,3 +303,13 @@ def test_variables_table_splits_missing_codes_from_values():
             "missing_labels": [],
         },
     ]
+
+
+def test_clean_rejects_raw_data_without_missing_codes(tmp_path: Path):
+    """Refuse raw data cached before missing codes were kept, naming the fix."""
+    pl.DataFrame({"variable": ["q"], "values": [[1]]}).write_parquet(
+        tmp_path / "variables.parquet"
+    )
+
+    with pytest.raises(ValueError, match="refresh=True"):
+        GSS(root=tmp_path).clean(tmp_path)

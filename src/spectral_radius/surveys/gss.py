@@ -166,6 +166,30 @@ DEMOGRAPHICS: dict[str, pl.Expr] = {
     ),
 }
 
+# the kind of each gss missing code (a stata extended missing value),
+# after the label the gss publishes for it, quoted where the kind differs
+MISSING_CODES: dict[str, str] = {
+    ".d": "dont_know",  # also "can't choose" for some variables
+    ".f": "other",  # "missing birthdate information", for one variable
+    ".i": "inapplicable",  # "iap": not asked, e.g. by a filter or ballot
+    ".j": "inapplicable",  # "I don't have a job"
+    ".m": "unspecified",  # "dk, na, iap"
+    ".n": "no_answer",
+    ".p": "not_imputable",
+    ".r": "refused",
+    ".s": "skipped",  # "skipped on web"
+    ".u": "uncodeable",
+    ".x": "not_released",  # "not available in this release"
+    ".y": "not_asked_this_year",  # "not available in this year"
+    ".z": "other",  # "see codebook"
+}
+
+
+def missing_kind(code: pl.Expr) -> pl.Expr:
+    """The `MISSING` kind of each gss missing code, failing on an unknown code."""
+    return code.replace_strict(MISSING_CODES, return_dtype=schemas.MISSING)
+
+
 # the stata file stores these as small integers
 YEAR = pl.col("year").cast(pl.Int64)
 RESPONDENT = pl.col("id").cast(pl.Int64).alias("respondent")
@@ -328,6 +352,11 @@ def codebook(
             "question",
             pl.col("years").fill_null([]),
             pl.struct(value="values", label="labels").alias("labels"),
+            pl.struct(
+                code="missing_codes",
+                label="missing_labels",
+                kind=pl.col("missing_codes").list.eval(missing_kind(pl.element())),
+            ).alias("missing"),
         )
     )
 
@@ -343,17 +372,37 @@ def respondents(gss: pl.LazyFrame) -> pl.LazyFrame:
 
 def responses(gss: pl.LazyFrame, variables: Sequence[str]) -> pl.LazyFrame:
     """
-    Answers to `variables` in long format.
+    Every respondent's response to each of `variables`, in long format.
 
-    Missing codes are stata extended missing values, already null in the raw data.
+    A null value takes its kind from its missing code
+    (or is `unrecorded` if it has none).
     """
+    response = pl.col("response").struct
+    value = response.field("value")
+    code = response.field("code")
+    unrecorded = pl.lit(schemas.UNRECORDED, dtype=schemas.MISSING)
+
     return (
-        gss.select(YEAR, RESPONDENT, *variables)
-        .unpivot(index=["year", "respondent"])
-        .drop_nulls("value")
-        .with_columns(
+        gss.select(
+            YEAR,
+            RESPONDENT,
+            *(
+                pl.struct(
+                    value=pl.col(v).cast(pl.Int64),
+                    code=pl.col(f"{v}{MISSING_SUFFIX}"),
+                ).alias(v)
+                for v in variables
+            ),
+        )
+        .unpivot(index=["year", "respondent"], value_name="response")
+        .select(
+            "year",
+            "respondent",
             pl.col("variable").cast(pl.Categorical),
-            pl.col("value").cast(pl.Int64),
+            value,
+            pl.when(value.is_null())
+            .then(missing_kind(code).fill_null(unrecorded))
+            .alias("missing"),
         )
     )
 
