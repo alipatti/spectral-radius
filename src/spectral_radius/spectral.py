@@ -11,8 +11,8 @@ from plotnine_theme import theme_ali
 from polars import selectors as cs
 from polars_utils.stats import mean
 
-from spectral_radius.analysis import analysis_frame, survey_data
-from spectral_radius.constants import FIGURES, START_YEAR
+from spectral_radius.analysis import analysis_frame, start_year, survey_data
+from spectral_radius.constants import FIGURES
 from spectral_radius.plot_helpers import (
     CATEGORY_WRAP,
     COLOR_SCALE,
@@ -147,20 +147,26 @@ def measures_by_group_and_category(
     )
 
 
-def binned_year(bin_size: int | None = 1) -> pl.Expr:
+def binned_year(bin_size: int | None, start_year: int) -> pl.Expr:
     """
-    The midpoint of each year's `bin_size`-year bin, with bins starting at
-    `START_YEAR`; the year itself if `bin_size` is None.
+    The midpoint of each year's `bin_size`-year bin, or the year if `bin_size` is None.
+
+    Bins are `[start_year + k * bin_size, start_year + (k + 1) * bin_size)`
+    for every integer `k`, whatever years the survey was fielded in:
+    a bin without a fielded year is absent rather than empty,
+    and bins can hold different numbers of waves
+    (e.g. 5-year bins of a biennial survey alternately hold 3 and 2 waves,
+    and 1-year bins hold one wave each, at the year plus 0.5).
     """
     if bin_size is None:
         return pl.col("year")
 
     return (
         pl.col("year")
-        .sub(START_YEAR)
+        .sub(start_year)
         .floordiv(bin_size)
         .mul(bin_size)
-        .add(START_YEAR + pl.lit(bin_size) / 2)
+        .add(start_year + pl.lit(bin_size) / 2)
     )
 
 
@@ -169,7 +175,9 @@ def binned_year(bin_size: int | None = 1) -> pl.Expr:
 
 
 def _binned_responses(year_bin_width: int | None, survey: str) -> pl.DataFrame:
-    return analysis_frame(survey).with_columns(binned_year(year_bin_width))
+    return analysis_frame(survey).with_columns(
+        binned_year(year_bin_width, start_year(survey))
+    )
 
 
 @cache

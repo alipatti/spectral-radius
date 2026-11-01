@@ -14,6 +14,16 @@ SOURCES: tuple[Source, ...] = (GSS(),)
 MEMBERS = ("codebook", "respondents", "responses")
 
 
+def source(survey: str) -> Source:
+    """The source of `survey` among `SOURCES`."""
+    by_name = {s.name: s for s in SOURCES}
+
+    if survey not in by_name:
+        raise ValueError(f"No source named {survey!r} (sources {list(by_name)})")
+
+    return by_name[survey]
+
+
 def load(
     sources: Sequence[Source] = SOURCES,
     *,

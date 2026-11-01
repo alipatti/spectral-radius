@@ -8,7 +8,6 @@ import pytest
 from polars.testing import assert_frame_equal
 
 from spectral_radius import spectral
-from spectral_radius.constants import START_YEAR
 from spectral_radius.spectral import (
     binned_year,
     measures_by_group_and_category,
@@ -17,6 +16,7 @@ from spectral_radius.spectral import (
     spectral_measures,
 )
 
+START_YEAR = 1990
 N_ROWS = 400
 CATEGORIES = {
     "partial_and_disjoint": ["dense", "sparse", "even_rows", "odd_rows"],
@@ -164,15 +164,38 @@ def test_measures_match_original_implementation(survey: pl.DataFrame, group: lis
     ],
 )
 def test_binned_year_maps_to_bin_midpoint(bin_size: int, year: int, expected: float):
-    """Map each year to the midpoint of its bin, with bins starting at START_YEAR."""
+    """Map each year to the midpoint of its bin, with bins starting at the start year."""
     years = pl.DataFrame({"year": [year]})
-    assert years.select(binned_year(bin_size)).item() == expected
+    assert years.select(binned_year(bin_size, START_YEAR)).item() == expected
+
+
+@pytest.mark.parametrize(
+    ("bin_size", "expected"),
+    [
+        # one wave per bin, at each year plus 0.5
+        (1, {1992.5: 1, 1994.5: 1, 1996.5: 1, 1998.5: 1, 2000.5: 1, 2002.5: 1}),
+        # bins alternate between 2 and 1 waves
+        (3, {1993.5: 2, 1996.5: 1, 1999.5: 2, 2002.5: 1}),
+        # bins alternate between 3 and 2 waves, and the last holds what's left
+        (5, {1994.5: 3, 1999.5: 2, 2004.5: 1}),
+    ],
+)
+def test_binned_year_bins_biennial_years_from_start_year(
+    bin_size: int,
+    expected: dict[float, int],
+):
+    """Bin a biennial survey's years from its start year, whatever waves each bin holds."""
+    years = pl.DataFrame({"year": range(1992, 2004, 2)})
+
+    bins = years.select(binned_year(bin_size, 1992))["year"].value_counts()
+
+    assert dict(bins.sort("year").iter_rows()) == expected
 
 
 def test_binned_year_none_leaves_year_unchanged():
     """Return the year itself, with its dtype, when there is no bin size."""
     years = pl.DataFrame({"year": [1990, 1997, 2021]}, schema={"year": pl.Int16})
-    assert_frame_equal(years.select(binned_year(None)), years)
+    assert_frame_equal(years.select(binned_year(None, START_YEAR)), years)
 
 
 @pytest.fixture
@@ -197,6 +220,7 @@ def measure_calls(monkeypatch: pytest.MonkeyPatch) -> Iterator[list[list[str]]]:
 
     monkeypatch.setitem(spectral.QUESTION_SETS, "fake", {"xy": ["x", "y"]})
     monkeypatch.setattr(spectral, "analysis_frame", lambda survey: responses)
+    monkeypatch.setattr(spectral, "start_year", lambda survey: START_YEAR)
     monkeypatch.setattr(
         spectral,
         "survey_data",

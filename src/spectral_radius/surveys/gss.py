@@ -573,6 +573,7 @@ class GSS(Source):
 
     name = "gss"
     demographics = frozenset(DEMOGRAPHICS)
+    start_year = 1990
 
     def __init__(
         self,

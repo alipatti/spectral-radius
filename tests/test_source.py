@@ -15,6 +15,7 @@ from spectral_radius.surveys import (
     Source,
     build,
     load,
+    pipeline,
 )
 from spectral_radius.surveys.schemas import RACE, SEX
 
@@ -30,6 +31,7 @@ class FakeSource(Source):
 
     name = "fake"
     demographics = frozenset({"sex"})
+    start_year = 2000
 
     def __init__(
         self,
@@ -190,10 +192,26 @@ def test_rejects_declaring_non_demographic(name: str):
 
 def test_requires_declaration():
     """Refuse at class definition a source that doesn't declare its demographics."""
-    with pytest.raises(TypeError, match="doesn't declare"):
+    with pytest.raises(TypeError, match="doesn't declare its demographics"):
 
         class _(Source):
-            pass
+            start_year = 2000
+
+
+def test_requires_start_year():
+    """Refuse at class definition a source that doesn't declare its start year."""
+    with pytest.raises(TypeError, match="doesn't declare its start year"):
+
+        class _(Source):
+            demographics = frozenset({"sex"})
+
+
+def test_source_finds_pipeline_source_by_name():
+    """Find a source of the pipeline by its survey's name, or refuse an unknown one."""
+    assert pipeline.source("gss").start_year == 1990
+
+    with pytest.raises(ValueError, match="No source named 'fake'"):
+        pipeline.source("fake")
 
 
 def test_declaration_survives_pipeline_concat(tmp_path: Path):

@@ -29,8 +29,9 @@ class Source(ABC):
     """
     A survey: how to download its raw files and clean them into `SurveyData`.
 
-    Subclasses implement `download` and `clean`
-    and declare the `demographics` they provide;
+    Subclasses implement `download` and `clean`,
+    declare the `demographics` they provide,
+    and the `start_year` from which the analysis uses their respondents;
     `fetch` caches the raw files under `<root>/raw/<name>/`
     and `load` validates the cleaned frames.
     Cleaned respondents have only the key, weight, and declared demographics;
@@ -39,12 +40,16 @@ class Source(ABC):
 
     name: ClassVar[str]
     demographics: ClassVar[frozenset[str]]
+    start_year: ClassVar[int]
 
     def __init_subclass__(cls, **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
 
         if not hasattr(cls, "demographics"):
             raise TypeError(f"{cls.__name__} doesn't declare its demographics")
+
+        if not hasattr(cls, "start_year"):
+            raise TypeError(f"{cls.__name__} doesn't declare its start year")
 
         if unknown := cls.demographics.difference(DEMOGRAPHICS):
             raise TypeError(f"{cls.__name__} declares non-demographics {unknown}")

@@ -12,7 +12,6 @@ import polars as pl
 import pytest
 
 from spectral_radius.analysis import analysis_frame, survey_data
-from spectral_radius.constants import START_YEAR
 from spectral_radius.surveys import DEMOGRAPHICS, GSS, SurveyData, question_variables
 from spectral_radius.surveys.gss import OFF_SCALE_CODES, OPINION_SCALES
 
@@ -84,7 +83,7 @@ def observed_ranges(responses: pl.DataFrame, min_year: int) -> dict[str, tuple]:
     return {variable: (low, high) for variable, low, high in rows.iter_rows()}
 
 
-@pytest.mark.parametrize("min_year", [0, START_YEAR], ids=["all_years", "analysis"])
+@pytest.mark.parametrize("min_year", [0, GSS.start_year], ids=["all_years", "analysis"])
 def test_observed_ranges_span_declared_ranges(responses: pl.DataFrame, min_year: int):
     """
     Observe each variable's whole declared range, and nothing outside it.
@@ -120,7 +119,7 @@ def test_analysis_frame_columns(frame: pl.DataFrame):
 
 def test_analysis_frame_starts_at_start_year(frame: pl.DataFrame):
     """Keep only respondents from the start year on."""
-    assert frame["year"].min() == START_YEAR
+    assert frame["year"].min() == GSS.start_year
 
 
 def test_analysis_frame_scales_variables_to_pm_1(frame: pl.DataFrame):
