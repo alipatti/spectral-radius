@@ -11,6 +11,7 @@ from spectral_radius.surveys.gss import (
     codebook,
     respondents,
     responses,
+    variables_table,
 )
 
 RAW_DEMOGRAPHICS = [
@@ -224,3 +225,39 @@ def test_codebook_question_text_matches_differently_named_variables():
 def test_declares_every_demographic():
     """Declare all the shared demographics, since the GSS asks about each."""
     assert GSS.demographics == DEMOGRAPHICS.keys()
+
+
+def test_variables_table_splits_missing_codes_from_values():
+    """Sort integer value labels apart from the labels of extended missing values."""
+    metadata = [
+        {
+            "name": "q",
+            "label": "A question",
+            "value_labels": {
+                "2": "no",
+                "MISSING_i": "iap",
+                "1": "yes",
+                "MISSING_d": "don't know",
+            },
+        },
+        {"name": "id", "label": None, "value_label_name": None},
+    ]
+
+    assert variables_table(metadata).to_dicts() == [
+        {
+            "variable": "q",
+            "description": "A question",
+            "values": [1, 2],
+            "labels": ["yes", "no"],
+            "missing_codes": [".d", ".i"],
+            "missing_labels": ["don't know", "iap"],
+        },
+        {
+            "variable": "id",
+            "description": None,
+            "values": [],
+            "labels": [],
+            "missing_codes": [],
+            "missing_labels": [],
+        },
+    ]

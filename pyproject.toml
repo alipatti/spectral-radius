@@ -14,10 +14,10 @@ dependencies = [
     "plotnine>=0.14.5",
     "plotnine-theme",
     "polars>=1.30.0",
+    "polars-readstat>=0.25.0",
     "polars-utils",
     # plotnine needs pyarrow to convert polars frames via to_pandas
     "pyarrow>=20.0.0",
-    "pyreadstat>=1.2.9",
 ]
 
 [dependency-groups]

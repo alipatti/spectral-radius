@@ -802,6 +802,21 @@ wheels = [
 ]
 
 [[package]]
+name = "polars-readstat"
+version = "0.25.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "polars" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/64/aa/5849edb99082abaf8331a9958490625d8a44a83cf19b04d858204ef1287e/polars_readstat-0.25.0-cp39-abi3-macosx_10_15_x86_64.whl", hash = "sha256:1992ee6d4ab64413d0cbaab1fe4fdab9fd6836ce961b3c858a40a2c04e652f6c", size = 23156431, upload-time = "2026-10-14T15:55:54.086Z" },
+    { url = "https://files.pythonhosted.org/packages/f1/ad/1153c91f3022483de801d50ef907f1f1d8fb32905e67cf6eed4f6ed18520/polars_readstat-0.25.0-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:7ae3f1d83a0453e84b91e726e7b108c6d072dfe41a630c3a0b00566bcb0f1f88", size = 20842324, upload-time = "2026-10-14T15:55:57.186Z" },
+    { url = "https://files.pythonhosted.org/packages/56/9d/c07bebf7a75926d30f97cc6ce73086e198eeb0e3ddc8876202bf26add016/polars_readstat-0.25.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c6537418e8e00859bac9af63155dd92c8a4a38522833922e2a5a244dccf4f745", size = 24022216, upload-time = "2026-10-14T15:56:00.512Z" },
+    { url = "https://files.pythonhosted.org/packages/91/8e/d0543e60c7f1e7db3060727d6062c3542f7dac489922f92115146bd03718/polars_readstat-0.25.0-cp39-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:6d846ed26a0e2b380c211819b181ea8fbc9585fa3fa7648c39b5187cb8ac2e40", size = 24073193, upload-time = "2026-10-14T15:56:03.732Z" },
+    { url = "https://files.pythonhosted.org/packages/de/fd/689f3efc9622a5a81b53e245d37c3da4a5e92c24dd8d827a586b9a2aa1b5/polars_readstat-0.25.0-cp39-abi3-win_amd64.whl", hash = "sha256:bcd4ec87aae94ac41b764e1d57fb0a59621284af657659116b35d2a1667855b1", size = 25601739, upload-time = "2026-10-14T15:56:07.188Z" },
+]
+
+[[package]]
 name = "polars-runtime-32"
 version = "1.44.2"
 source = { registry = "https://pypi.org/simple" }
@@ -932,28 +947,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pyreadstat"
-version = "1.3.6"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "narwhals" },
-    { name = "numpy" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/7a/46/5da098432b075d5ddadaf3d2f1f9f7abe1477a5be06697528ceb30337301/pyreadstat-1.3.6.tar.gz", hash = "sha256:c7b3bde1d86d5b4bd93b8a783d306a1cc6b9cc64adc4b892754f24caa8270aa5", size = 519810, upload-time = "2026-08-12T13:03:23.231Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/af/97/4814041fda04c71a12b5ef2b25dd6110e06735693f7a829661d9be9457bc/pyreadstat-1.3.6-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:88b412b7c339f0d174eb50dff7478905a9cac72409b0fe98ebe3b203d1c48271", size = 771763, upload-time = "2026-08-12T13:03:05.105Z" },
-    { url = "https://files.pythonhosted.org/packages/7f/13/16fc131b14d775fa69755bb988479553c8a077e10dd16a567dbc90257272/pyreadstat-1.3.6-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:c683a98862a47de2fefafb28c197c724c632a0223214eca7c96b2f4774dc6346", size = 735668, upload-time = "2026-08-12T13:03:06.558Z" },
-    { url = "https://files.pythonhosted.org/packages/2d/38/d9a205ad3972a32dca530a22036f6e5006565deb71c884cff17d14ec3cdf/pyreadstat-1.3.6-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:ed79f7acdb96c4df99cd53e4c87aaa750c369acb3d58ca305315dbc8ed75ed29", size = 2577621, upload-time = "2026-08-12T13:03:08.282Z" },
-    { url = "https://files.pythonhosted.org/packages/a3/24/6acc5097dbb755e811f34de11700ca741c219b3aa24f08a6757d96d162c6/pyreadstat-1.3.6-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:3ac231771dc038e0a42a4d14599af3112684f7eba680983b3ef9581db3e3b163", size = 2659007, upload-time = "2026-08-12T13:03:10.082Z" },
-    { url = "https://files.pythonhosted.org/packages/63/1e/9baec73c687d2eee2ff6c8de2ec2862b81bd9a2d84a5f726cd4aab04f1b4/pyreadstat-1.3.6-cp313-cp313-win_amd64.whl", hash = "sha256:4f524d0da5183d3507ff57cc00e82d4fdee46c33066e904a1186566b0fa95b7c", size = 2035573, upload-time = "2026-08-12T13:03:11.829Z" },
-    { url = "https://files.pythonhosted.org/packages/b7/78/0d00cd24b1a1a4f6b567186361517e0d2f8b95696edd0e5d32c4805b0671/pyreadstat-1.3.6-cp314-cp314-macosx_10_15_x86_64.whl", hash = "sha256:4d54d1f7353942ac94220069a8dcc34b3b38af53d98a24dcc9a28742ca153c6c", size = 779160, upload-time = "2026-08-12T13:03:13.363Z" },
-    { url = "https://files.pythonhosted.org/packages/b2/7b/da0cb3aa581be9ae1d6f2d21b0aece37513eb53f445c1e80819d2aae4892/pyreadstat-1.3.6-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:744cc52a6d14ffd2930c684bf07d4a19c5342f41f92c4604b445137f7a4628af", size = 743692, upload-time = "2026-08-12T13:03:14.827Z" },
-    { url = "https://files.pythonhosted.org/packages/f2/3a/c58518c19dbb3b27d52dba7e386ab6ebbd7f1018657d4286f89e5add1d63/pyreadstat-1.3.6-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:1b4f32d4a8ef996a5c3ee6ba2d6790a0ca93e7a4c1f7611e94e610d945e0788b", size = 2573814, upload-time = "2026-08-12T13:03:16.779Z" },
-    { url = "https://files.pythonhosted.org/packages/ab/a3/3f233e2036329ffc6d96b8d6bd854c757558aad32390ad34dfddf528bc2a/pyreadstat-1.3.6-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:c8d665437b39d4788c2854f09b352ada9e70e166dd96ab68225b81214abe8645", size = 2641549, upload-time = "2026-08-12T13:03:19.889Z" },
-    { url = "https://files.pythonhosted.org/packages/af/96/ae391570291876b3b53c53b4c9032a432e04c3c67b30fc1bab8b61d796f6/pyreadstat-1.3.6-cp314-cp314-win_amd64.whl", hash = "sha256:822551e12c83c4e8e0f757060297b459d38bfb3860bb6c7419f71288ddd94690", size = 2054905, upload-time = "2026-08-12T13:03:21.803Z" },
-]
-
-[[package]]
 name = "pytest"
 version = "9.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1065,9 +1058,9 @@ dependencies = [
     { name = "plotnine" },
     { name = "plotnine-theme" },
     { name = "polars" },
+    { name = "polars-readstat" },
     { name = "polars-utils" },
     { name = "pyarrow" },
-    { name = "pyreadstat" },
 ]
 
 [package.dev-dependencies]
@@ -1087,9 +1080,9 @@ requires-dist = [
     { name = "plotnine", specifier = ">=0.14.5" },
     { name = "plotnine-theme", git = "https://github.com/alipatti/plotnine_theme" },
     { name = "polars", specifier = ">=1.30.0" },
+    { name = "polars-readstat", specifier = ">=0.25.0" },
     { name = "polars-utils", git = "https://github.com/alipatti/polars_utils" },
     { name = "pyarrow", specifier = ">=20.0.0" },
-    { name = "pyreadstat", specifier = ">=1.2.9" },
 ]
 
 [package.metadata.requires-dev]

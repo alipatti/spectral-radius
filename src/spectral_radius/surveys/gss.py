@@ -6,14 +6,15 @@ Codes are documented at https://gssdataexplorer.norc.org/variables/vfilter.
 
 import math
 import tempfile
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import cast, override
+from typing import Any, override
 from zipfile import ZipFile
 
 import httpx
 import polars as pl
-import pyreadstat
+import polars.selectors as cs
+import polars_readstat as prs
 
 from spectral_radius.surveys import schemas
 from spectral_radius.surveys.question_sets import question_variables
@@ -29,6 +30,10 @@ VARIABLES_FILE = "variables.parquet"
 QUESTIONS_FILE = "questions.parquet"
 WEIGHT = "wtssps"
 QUESTIONS_PER_PAGE = 100
+# the suffix of the column holding each numeric column's extended missing values
+MISSING_SUFFIX = "_null"
+# how the stata metadata keys the labels of extended missing values
+STATA_MISSING_PREFIX = "MISSING_"
 
 # the fields kept of each variable the search api returns
 QUESTIONS_SCHEMA = pl.Schema(
@@ -161,50 +166,77 @@ DEMOGRAPHICS: dict[str, pl.Expr] = {
     ),
 }
 
-RESPONDENT = pl.col("id").alias("respondent")
+# the stata file stores these as small integers
+YEAR = pl.col("year").cast(pl.Int64)
+RESPONDENT = pl.col("id").cast(pl.Int64).alias("respondent")
 
 
-def variables_table(metadata: pyreadstat.metadata_container) -> pl.DataFrame:
+VARIABLES_SCHEMA = pl.Schema(
+    {
+        "variable": pl.String,
+        "description": pl.String,
+        "values": pl.List(pl.Int64),
+        "labels": pl.List(pl.String),
+        "missing_codes": pl.List(pl.String),
+        "missing_labels": pl.List(pl.String),
+    }
+)
+
+
+def missing_code(label_key: str) -> str | None:
     """
-    One row per variable: its description and value labels.
+    The extended missing value a value label's key names, e.g. `MISSING_d` -> `.d`.
 
-    Only integer codes are kept;
-    the letter codes are stata's extended missing values, which read as null.
+    Null for keys of ordinary (integer) values.
     """
-    labels = metadata.variable_value_labels
+    letter = label_key.removeprefix(STATA_MISSING_PREFIX)
+    return f".{letter}" if letter != label_key else None
 
-    def labeled_values(variable: str) -> list[tuple[int, str]]:
-        return sorted(
-            (k, v) for k, v in labels.get(variable, {}).items() if isinstance(k, int)
+
+def variables_table(metadata: Sequence[Mapping[str, Any]]) -> pl.DataFrame:
+    """
+    One row per variable: its description, value labels, and missing-code labels.
+
+    Missing codes are spelled as in the data's `_null` columns (e.g. `.d`).
+    """
+
+    def variable_row(variable: Mapping[str, Any]) -> dict[str, Any]:
+        labels = variable.get("value_labels") or {}
+        values = sorted((int(k), v) for k, v in labels.items() if not missing_code(k))
+        missing = sorted(
+            (code, v) for k, v in labels.items() if (code := missing_code(k))
         )
 
-    return pl.DataFrame(
-        [
-            {
-                "variable": variable,
-                "description": metadata.column_names_to_labels.get(variable),
-                "values": [k for k, _ in labeled_values(variable)],
-                "labels": [v for _, v in labeled_values(variable)],
-            }
-            for variable in metadata.column_names
-        ],
-        schema={
-            "variable": pl.String,
-            "description": pl.String,
-            "values": pl.List(pl.Int64),
-            "labels": pl.List(pl.String),
-        },
+        return {
+            "variable": variable["name"],
+            "description": variable.get("label"),
+            "values": [k for k, _ in values],
+            "labels": [v for _, v in values],
+            "missing_codes": [k for k, _ in missing],
+            "missing_labels": [v for _, v in missing],
+        }
+
+    return pl.DataFrame(map(variable_row, metadata), schema=VARIABLES_SCHEMA)
+
+
+def write_raw(dta: Path, dest: Path) -> None:
+    """
+    Write the GSS data and its variable metadata as parquet.
+
+    Each numeric column `x` is followed by a string column `x_null`
+    holding the extended missing value (e.g. `.d`) where `x` is null.
+    Strings are decoded as utf-8, which stata 14+ files (format 118) always use.
+    """
+    reader = prs.ScanReadstat(
+        str(dta),
+        preserve_order=True,
+        informative_nulls=prs.InformativeNullOpts(
+            suffix=MISSING_SUFFIX,
+            use_value_labels=False,
+        ),
     )
-
-
-def write_raw(
-    data: pl.DataFrame,
-    metadata: pyreadstat.metadata_container,
-    dest: Path,
-) -> None:
-    """Write the GSS data and its variable metadata as parquet."""
-    data.write_parquet(dest / DATA_FILE)
-    variables_table(metadata).write_parquet(dest / VARIABLES_FILE)
+    reader.df.sink_parquet(dest / DATA_FILE)
+    variables_table(reader.metadata["variables"]).write_parquet(dest / VARIABLES_FILE)
 
 
 def search_variables(client: httpx.Client, page: int, limit: int) -> dict:
@@ -264,8 +296,8 @@ def question_text(questions: pl.LazyFrame) -> pl.LazyFrame:
 def years_observed(gss: pl.LazyFrame) -> pl.LazyFrame:
     """The sorted years in which each variable has any non-null value."""
     return (
-        gss.group_by(pl.col("year").alias("__year"))
-        .agg(pl.all().is_not_null().any())
+        gss.group_by(YEAR.alias("__year"))
+        .agg(cs.exclude(cs.ends_with(MISSING_SUFFIX)).is_not_null().any())
         .unpivot(index="__year")
         .filter(pl.col("value"))
         .group_by("variable")
@@ -302,7 +334,7 @@ def codebook(
 
 def respondents(gss: pl.LazyFrame) -> pl.LazyFrame:
     return gss.select(
-        "year",
+        YEAR,
         RESPONDENT,
         pl.col(WEIGHT).alias("weight"),
         **DEMOGRAPHICS,
@@ -316,7 +348,7 @@ def responses(gss: pl.LazyFrame, variables: Sequence[str]) -> pl.LazyFrame:
     Missing codes are stata extended missing values, already null in the raw data.
     """
     return (
-        gss.select("year", RESPONDENT, *variables)
+        gss.select(YEAR, RESPONDENT, *variables)
         .unpivot(index=["year", "respondent"])
         .drop_nulls("value")
         .with_columns(
@@ -359,20 +391,26 @@ class GSS(Source):
                     scratch,
                 )
 
-            frame, metadata = pyreadstat.read_dta(dta, encoding="LATIN1")
-            # from_pandas returns a series only when given one
-            write_raw(cast(pl.DataFrame, pl.from_pandas(frame)), metadata, dest)
+            write_raw(Path(dta), dest)
 
         download_questions(dest)
 
     @override
     def clean(self, raw: Path) -> CleanFrames:
+        variables = pl.scan_parquet(raw / VARIABLES_FILE)
+
+        if "missing_codes" not in variables.collect_schema():
+            raise ValueError(
+                f"The raw GSS data in {raw} predates missing codes; "
+                "refetch it with `GSS().fetch(refresh=True)`"
+            )
+
         gss = pl.scan_parquet(raw / DATA_FILE)
 
         return CleanFrames(
             codebook=codebook(
                 gss,
-                pl.scan_parquet(raw / VARIABLES_FILE),
+                variables,
                 pl.scan_parquet(raw / QUESTIONS_FILE),
             ),
             respondents=respondents(gss),
