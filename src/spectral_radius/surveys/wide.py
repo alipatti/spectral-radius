@@ -1,10 +1,10 @@
 """Analysis-facing views of `SurveyData`."""
 
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Sequence
 
 import polars as pl
 
-from spectral_radius.surveys.encodings import Encoding, scale_code_range_to_pm_1
+from spectral_radius.surveys.encodings import Encoding, positions_to_pm_1
 from spectral_radius.surveys.schemas import DEMOGRAPHICS, SurveyData
 
 
@@ -27,23 +27,9 @@ def declared_scale_codes(
     return codes
 
 
-def _require_categorical_allowed(
-    codes: Mapping[str, Sequence[int]],
-    allow_categorical: Collection[str],
-) -> None:
-    categorical = {v for v, c in codes.items() if c != sorted(c)}
-
-    if disallowed := sorted(categorical.difference(allow_categorical)):
-        raise ValueError(
-            f"Variables {disallowed} have scale codes out of scale order, "
-            "which encodings treat as ordered by code; "
-            "pass them in `allow_categorical` to accept that"
-        )
-
-    if stale := sorted(set(allow_categorical).difference(categorical)):
-        raise ValueError(
-            f"Variables {stale} are allowed as categorical but their codes are ordered"
-        )
+def scale_position(x: pl.Expr, codes: Sequence[int]) -> pl.Expr:
+    """Each answer's position on its scale, `0` to `len(codes) - 1`, given its codes."""
+    return x.replace_strict(codes, range(len(codes)), return_dtype=pl.Int64)
 
 
 def wide(
@@ -51,25 +37,22 @@ def wide(
     survey: str,
     variables: Sequence[str],
     *,
-    encoding: Encoding = scale_code_range_to_pm_1,
+    encoding: Encoding = positions_to_pm_1,
     min_year: int | None = None,
-    allow_categorical: Collection[str] = (),
 ) -> pl.DataFrame:
     """
     One row per respondent with one column per variable, plus demographics and weight `w`.
 
     Rows are respondents from `min_year` onward (all years if `None`).
     Every non-answer is null, whatever its `missing` kind.
-    `encoding` (see `encodings`) is applied to each variable over those rows,
-    given the variable's scale codes;
-    with the default, it scales the range of the codes onto [-1, 1].
-    Every variable must be one the survey reads,
-    and those whose scale codes are out of scale order
-    must be named in `allow_categorical`, since encodings treat codes as ordered.
+    Each answer is replaced by its position on the variable's scale
+    (`0` for the first level, in scale order, whatever its raw code),
+    and `encoding` (see `encodings`) is applied to those positions over the rows;
+    the default spaces the levels evenly over [-1, 1].
+    Every variable must be one the survey reads.
     """
     variables = list(dict.fromkeys(variables))
     codes = declared_scale_codes(data, survey, variables)
-    _require_categorical_allowed(codes, allow_categorical)
 
     in_survey = pl.col("survey") == survey
     in_years = pl.lit(True) if min_year is None else pl.col("year") >= min_year
@@ -95,7 +78,10 @@ def wide(
         .select(
             "year",
             *DEMOGRAPHICS,
-            *(pl.col(v).pipe(encoding, codes[v]) for v in variables),
+            *(
+                pl.col(v).pipe(scale_position, codes[v]).pipe(encoding, len(codes[v]))
+                for v in variables
+            ),
             "w",
         )
     )

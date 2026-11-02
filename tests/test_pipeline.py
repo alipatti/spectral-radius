@@ -16,7 +16,6 @@ def two_surveys(monkeypatch: pytest.MonkeyPatch) -> None:
         (SimpleNamespace(name="a"), SimpleNamespace(name="b")),
     )
     monkeypatch.setattr(pipeline, "QUESTION_SETS", {"a": {}, "b": {}})
-    monkeypatch.setattr(pipeline, "ALLOWED_CATEGORICAL", {"a": set(), "b": set()})
 
 
 def test_surveys_are_the_sources_in_order(two_surveys: None):
@@ -29,29 +28,25 @@ def test_surveys_of_the_real_pipeline():
     assert pipeline.surveys() == ["gss"]
 
 
-@pytest.mark.parametrize("config", ["QUESTION_SETS", "ALLOWED_CATEGORICAL"])
-def test_surveys_rejects_source_without_config(
+def test_surveys_rejects_source_without_question_set(
     two_surveys: None,
     monkeypatch: pytest.MonkeyPatch,
-    config: str,
 ):
-    """Refuse a source without a question set or categorical allowance."""
-    monkeypatch.setattr(pipeline, config, {"a": {}})
+    """Refuse a source without a question set."""
+    monkeypatch.setattr(pipeline, "QUESTION_SETS", {"a": {}})
 
-    with pytest.raises(ValueError, match=rf"\['b'\] have no entry in {config}"):
+    with pytest.raises(ValueError, match=r"\['b'\] have no entry in QUESTION_SETS"):
         pipeline.surveys()
 
 
-@pytest.mark.parametrize("config", ["QUESTION_SETS", "ALLOWED_CATEGORICAL"])
-def test_surveys_rejects_config_without_source(
+def test_surveys_rejects_question_set_without_source(
     two_surveys: None,
     monkeypatch: pytest.MonkeyPatch,
-    config: str,
 ):
-    """Refuse a question set or categorical allowance for a survey without a source."""
-    monkeypatch.setattr(pipeline, config, {"a": {}, "b": {}, "c": {}})
+    """Refuse a question set for a survey without a source."""
+    monkeypatch.setattr(pipeline, "QUESTION_SETS", {"a": {}, "b": {}, "c": {}})
 
-    with pytest.raises(ValueError, match=rf"{config} .* without sources: \['c'\]"):
+    with pytest.raises(ValueError, match=r"QUESTION_SETS .* without sources: \['c'\]"):
         pipeline.surveys()
 
 

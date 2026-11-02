@@ -221,14 +221,8 @@ def pipeline_of_two(
     """Make the pipeline's sources the two synthetic surveys, already loaded."""
     monkeypatch.setattr(pipeline, "SOURCES", sources)
     monkeypatch.setattr(pipeline, "QUESTION_SETS", QUESTION_SETS)
-    monkeypatch.setattr(pipeline, "ALLOWED_CATEGORICAL", {"x": set(), "y": set()})
     monkeypatch.setattr(spectral, "QUESTION_SETS", QUESTION_SETS)
     monkeypatch.setattr(appendix, "QUESTION_SETS", QUESTION_SETS)
-    monkeypatch.setattr(
-        analysis,
-        "ALLOWED_CATEGORICAL",
-        {"x": frozenset(), "y": frozenset()},
-    )
     monkeypatch.setattr(question_sets, "QUESTION_SETS", QUESTION_SETS)
 
     for module in analysis, spectral, appendix:

@@ -7,7 +7,7 @@ import polars as pl
 from loguru import logger
 
 from spectral_radius.surveys.gss import GSS
-from spectral_radius.surveys.question_sets import ALLOWED_CATEGORICAL, QUESTION_SETS
+from spectral_radius.surveys.question_sets import QUESTION_SETS
 from spectral_radius.surveys.schemas import SurveyData
 from spectral_radius.surveys.source import DATA_ROOT, Source
 
@@ -19,25 +19,21 @@ def surveys() -> list[str]:
     """
     The names of the surveys of `SOURCES`, in order, for the analysis to iterate over.
 
-    Raises unless every survey has a question set and an entry in
-    `ALLOWED_CATEGORICAL`, and each of those belongs to a survey.
+    Raises unless every survey has a question set
+    and each question set belongs to a survey.
     """
     names = [s.name for s in SOURCES]
 
     if len(set(names)) != len(names):
         raise ValueError(f"Sources share names: {names}")
 
-    for config, keys in {
-        "QUESTION_SETS": QUESTION_SETS,
-        "ALLOWED_CATEGORICAL": ALLOWED_CATEGORICAL,
-    }.items():
-        if missing := [n for n in names if n not in keys]:
-            raise ValueError(f"Surveys {missing} have no entry in {config}")
+    if missing := [n for n in names if n not in QUESTION_SETS]:
+        raise ValueError(f"Surveys {missing} have no entry in QUESTION_SETS")
 
-        if extra := [k for k in keys if k not in names]:
-            raise ValueError(
-                f"{config} has entries for surveys without sources: {extra}"
-            )
+    if extra := [k for k in QUESTION_SETS if k not in names]:
+        raise ValueError(
+            f"QUESTION_SETS has entries for surveys without sources: {extra}"
+        )
 
     return names
 
