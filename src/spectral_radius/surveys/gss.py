@@ -6,7 +6,7 @@ Codes are documented at https://gssdataexplorer.norc.org/variables/vfilter.
 
 import math
 import tempfile
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, override
@@ -17,9 +17,9 @@ import polars as pl
 import polars.selectors as cs
 import polars_readstat as prs
 
-from spectral_radius.surveys import schemas
+from spectral_radius.surveys import scales, schemas
 from spectral_radius.surveys.question_sets import question_variables
-from spectral_radius.surveys.schemas import VariableScale
+from spectral_radius.surveys.scales import Scale
 from spectral_radius.surveys.source import DATA_ROOT, CleanFrames, Source
 
 URL = "https://gss.norc.org/content/dam/gss/get-the-data/documents/stata/GSS_stata.zip"
@@ -192,109 +192,74 @@ def missing_kind(code: pl.Expr) -> pl.Expr:
     return code.replace_strict(MISSING_CODES, return_dtype=schemas.MISSING)
 
 
-# the valid range and kind of scale of each opinion variable the gss can read,
-# from the gss's value labels (see `test_gss_data` for the cross-check);
-# a variable must be declared here to be read
-YES_NO = VariableScale(1, 2, "binary")
-TOO_LITTLE_TO_TOO_MUCH = VariableScale(1, 3, "ordinal")
-ALLOWED_TO_TEACH = VariableScale(4, 5, "binary")  # 4 allowed, 5 not allowed
-GOVERNMENT_TO_PEOPLE = VariableScale(1, 5, "ordinal")  # labels only 1, 3, and 5
-# 5 ("other") is off the scale
-ALWAYS_TO_NOT_WRONG = VariableScale(1, 4, "ordinal")
-OPINION_SCALES: Mapping[str, VariableScale] = MappingProxyType(
+# the scale of each opinion variable the gss can read, checked against the
+# gss's value labels on load; a variable must be assigned one here to be read
+VARIABLE_SCALES: Mapping[str, Scale] = MappingProxyType(
     {
-        # 1 allowed to speak, 2 not allowed
-        "spkath": YES_NO,
-        "spkmil": YES_NO,
-        "spkrac": YES_NO,
-        "spkhomo": YES_NO,
-        "spkmslm": YES_NO,
-        # 1 remove the book, 2 not remove
-        "libath": YES_NO,
-        "libmil": YES_NO,
-        "librac": YES_NO,
-        "libhomo": YES_NO,
-        "libmslm": YES_NO,
-        "colath": ALLOWED_TO_TEACH,
-        "colmil": ALLOWED_TO_TEACH,
-        "colrac": ALLOWED_TO_TEACH,
-        "colhomo": ALLOWED_TO_TEACH,
-        "colmslm": ALLOWED_TO_TEACH,
-        # strongly agree to strongly disagree
-        "advfront": VariableScale(1, 4, "ordinal"),
-        "natspac": TOO_LITTLE_TO_TOO_MUCH,
-        "natenvir": TOO_LITTLE_TO_TOO_MUCH,
-        "natheal": TOO_LITTLE_TO_TOO_MUCH,
-        "natcity": TOO_LITTLE_TO_TOO_MUCH,
-        "natcrime": TOO_LITTLE_TO_TOO_MUCH,
-        "natdrug": TOO_LITTLE_TO_TOO_MUCH,
-        "nateduc": TOO_LITTLE_TO_TOO_MUCH,
-        "natrace": TOO_LITTLE_TO_TOO_MUCH,
-        "natarms": TOO_LITTLE_TO_TOO_MUCH,
-        "nataid": TOO_LITTLE_TO_TOO_MUCH,
-        "natfare": TOO_LITTLE_TO_TOO_MUCH,
-        "natroad": TOO_LITTLE_TO_TOO_MUCH,
-        "natsoc": TOO_LITTLE_TO_TOO_MUCH,
-        "natmass": TOO_LITTLE_TO_TOO_MUCH,
-        "natpark": TOO_LITTLE_TO_TOO_MUCH,
-        "helpblk": GOVERNMENT_TO_PEOPLE,
-        "helpsick": GOVERNMENT_TO_PEOPLE,
-        "helppoor": GOVERNMENT_TO_PEOPLE,
-        # strongly favor to strongly oppose
-        "affrmact": VariableScale(1, 4, "ordinal"),
-        "fejobaff": VariableScale(1, 4, "ordinal"),
-        # strongly agree to strongly disagree
-        "fehire": VariableScale(1, 5, "ordinal"),
-        "wrkwayup": VariableScale(1, 5, "ordinal"),
-        # 1 yes, 2 no
-        "racdif1": YES_NO,
-        "racdif2": YES_NO,
-        "racdif3": YES_NO,
-        "racdif4": YES_NO,
-        # reduce income differences to not concern itself; labels only 1 and 7
-        "eqwlth": VariableScale(1, 7, "ordinal"),
-        # 1 yes, 2 no
-        "polhitok": YES_NO,
-        "polabuse": YES_NO,
-        "polmurdr": YES_NO,
-        "polescap": YES_NO,
-        "polattak": YES_NO,
-        # 1 too harshly, 2 not harshly enough, 3 about right: the codes
-        # aren't in the order of the answers
-        "courts": VariableScale(1, 3, "categorical"),
-        # 1 favor, 2 oppose
-        "cappun": YES_NO,
-        # a great deal, only some, hardly any
-        "conjudge": VariableScale(1, 3, "ordinal"),
-        "premarsx": ALWAYS_TO_NOT_WRONG,
-        "xmarsex": ALWAYS_TO_NOT_WRONG,
-        "homosex": ALWAYS_TO_NOT_WRONG,
-        "teensex": ALWAYS_TO_NOT_WRONG,
-        # 1 favor, 2 oppose (3 is off the scale)
-        "sexeduc": YES_NO,
-        # strongly agree to strongly disagree
-        "pillok": VariableScale(1, 4, "ordinal"),
-        # 1 yes, 2 no
-        "abdefect": YES_NO,
-        "abnomore": YES_NO,
-        "abhlth": YES_NO,
-        "abpoor": YES_NO,
-        "abrape": YES_NO,
-        "absingle": YES_NO,
-        "abany": YES_NO,
-    }
-)
-# labeled codes of opinion variables that aren't answers on the variable's
-# scale, read as missing (kind `off_scale`) and listed with the missing codes
-OFF_SCALE_CODES: Mapping[str, frozenset[int]] = MappingProxyType(
-    {
-        # "other", given only in 1973 and 1974
-        "premarsx": frozenset({5}),
-        "xmarsex": frozenset({5}),
-        "homosex": frozenset({5}),
-        "teensex": frozenset({5}),
-        # "depends on age/grade" (volunteered), given only in 1974
-        "sexeduc": frozenset({3}),
+        "spkath": scales.ALLOWED_TO_SPEAK,
+        "spkmil": scales.ALLOWED_TO_SPEAK,
+        "spkrac": scales.ALLOWED_TO_SPEAK,
+        "spkhomo": scales.ALLOWED_TO_SPEAK,
+        "spkmslm": scales.ALLOWED_TO_SPEAK,
+        "libath": scales.REMOVE_BOOK,
+        "libmil": scales.REMOVE_BOOK,
+        "librac": scales.REMOVE_BOOK,
+        "libhomo": scales.REMOVE_BOOK,
+        "libmslm": scales.REMOVE_BOOK,
+        "colath": scales.ALLOWED_TO_TEACH,
+        "colmil": scales.ALLOWED_TO_TEACH,
+        "colrac": scales.ALLOWED_TO_TEACH,
+        "colhomo": scales.ALLOWED_TO_TEACH,
+        "colmslm": scales.ALLOWED_TO_TEACH,
+        "advfront": scales.AGREE_4,
+        "natspac": scales.TOO_LITTLE_TO_TOO_MUCH,
+        "natenvir": scales.TOO_LITTLE_TO_TOO_MUCH,
+        "natheal": scales.TOO_LITTLE_TO_TOO_MUCH,
+        "natcity": scales.TOO_LITTLE_TO_TOO_MUCH,
+        "natcrime": scales.TOO_LITTLE_TO_TOO_MUCH,
+        "natdrug": scales.TOO_LITTLE_TO_TOO_MUCH,
+        "nateduc": scales.TOO_LITTLE_TO_TOO_MUCH,
+        "natrace": scales.TOO_LITTLE_TO_TOO_MUCH,
+        "natarms": scales.TOO_LITTLE_TO_TOO_MUCH,
+        "nataid": scales.TOO_LITTLE_TO_TOO_MUCH,
+        "natfare": scales.TOO_LITTLE_TO_TOO_MUCH,
+        "natroad": scales.TOO_LITTLE_TO_TOO_MUCH,
+        "natsoc": scales.TOO_LITTLE_TO_TOO_MUCH,
+        "natmass": scales.TOO_LITTLE_TO_TOO_MUCH,
+        "natpark": scales.TOO_LITTLE_TO_TOO_MUCH,
+        "helpblk": scales.GOVERNMENT_TO_PEOPLE,
+        "helpsick": scales.GOVERNMENT_TO_PEOPLE,
+        "helppoor": scales.GOVERNMENT_TO_PEOPLE,
+        "affrmact": scales.FAVOR_OPPOSE_4,
+        "fejobaff": scales.FAVOR_OPPOSE_4,
+        "fehire": scales.AGREE_5,
+        "wrkwayup": scales.AGREE_5,
+        "racdif1": scales.YES_NO,
+        "racdif2": scales.YES_NO,
+        "racdif3": scales.YES_NO,
+        "racdif4": scales.YES_NO,
+        "eqwlth": scales.REDUCE_INCOME_DIFFERENCES,
+        "polhitok": scales.YES_NO,
+        "polabuse": scales.YES_NO,
+        "polmurdr": scales.YES_NO,
+        "polescap": scales.YES_NO,
+        "polattak": scales.YES_NO,
+        "courts": scales.COURTS_HARSHNESS,
+        "cappun": scales.FAVOR_OPPOSE,
+        "conjudge": scales.CONFIDENCE,
+        "premarsx": scales.ALWAYS_TO_NOT_WRONG,
+        "xmarsex": scales.ALWAYS_TO_NOT_WRONG,
+        "homosex": scales.ALWAYS_TO_NOT_WRONG,
+        "teensex": scales.ALWAYS_TO_NOT_WRONG,
+        "sexeduc": scales.FAVOR_OPPOSE,
+        "pillok": scales.AGREE_4,
+        "abdefect": scales.YES_NO,
+        "abnomore": scales.YES_NO,
+        "abhlth": scales.YES_NO,
+        "abpoor": scales.YES_NO,
+        "abrape": scales.YES_NO,
+        "absingle": scales.YES_NO,
+        "abany": scales.YES_NO,
     }
 )
 OFF_SCALE = pl.lit("off_scale", dtype=schemas.MISSING)
@@ -443,15 +408,14 @@ def codebook(
     gss: pl.LazyFrame,
     variables: pl.LazyFrame,
     questions: pl.LazyFrame,
-    read: Mapping[str, VariableScale],
-    off_scale: Mapping[str, Collection[int]],
+    read: Mapping[str, Scale],
 ) -> pl.LazyFrame:
     """
     One row per variable of the GSS.
 
-    `read` gives the scale of each variable read into responses
-    and `off_scale` its labeled codes that are off the scale,
-    which are listed after its missing codes, with kind `off_scale`.
+    `read` gives the scale of each variable read into responses;
+    the labeled off-scale codes of that scale are listed after the variable's
+    missing codes, with kind `off_scale`.
     """
 
     def by_variable(left: pl.LazyFrame, right: pl.LazyFrame) -> pl.LazyFrame:
@@ -469,7 +433,7 @@ def codebook(
     return (
         variables.pipe(by_variable, years_observed(gss))
         .pipe(by_variable, question_text(questions))
-        .pipe(by_variable, off_scale_labels(variables, off_scale))
+        .pipe(by_variable, off_scale_labels(variables, read))
         .select(
             pl.col("variable").cast(pl.Categorical),
             "description",
@@ -491,14 +455,18 @@ def codebook(
 
 def off_scale_labels(
     variables: pl.LazyFrame,
-    off_scale: Mapping[str, Collection[int]],
+    read: Mapping[str, Scale],
 ) -> pl.LazyFrame:
-    """Each variable's labeled off-scale codes (as strings), labels, and kinds."""
+    """
+    The off-scale codes (as strings), labels, and kinds each variable labels.
+
+    A variable's off-scale codes are those its scale declares.
+    """
     codes = pl.LazyFrame(
         [
             {"variable": variable, "value": code}
-            for variable, variable_codes in off_scale.items()
-            for code in sorted(variable_codes)
+            for variable, scale in read.items()
+            for code in scale.off_scale_codes
         ],
         schema={"variable": pl.String, "value": pl.Int64},
     )
@@ -525,16 +493,17 @@ def respondents(gss: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
-def response(variable: str, off_scale: Collection[int]) -> pl.Expr:
+def response(variable: str, scale: Scale) -> pl.Expr:
     """
     A variable's value and the kind of each non-answer, as a struct.
 
-    A null value takes its kind from its missing code
-    (or is `unrecorded` if it has none),
-    and a value in `off_scale` is moved out of `value` with kind `off_scale`.
+    The raw code is kept as the value, except that a null takes its kind
+    from its missing code (or is `unrecorded` if it has none)
+    and an off-scale code of `scale` is moved out of `value` with kind `off_scale`.
+    Any other code is kept, and fails validation unless it's a code of `scale`.
     """
     raw = pl.col(variable).cast(pl.Int64)
-    is_off_scale = raw.is_in(list(off_scale))
+    is_off_scale = raw.is_in(scale.off_scale_codes)
     unrecorded = pl.lit(schemas.UNRECORDED, dtype=schemas.MISSING)
     code = pl.col(f"{variable}{MISSING_SUFFIX}")
 
@@ -547,17 +516,14 @@ def response(variable: str, off_scale: Collection[int]) -> pl.Expr:
     ).alias(variable)
 
 
-def responses(
-    gss: pl.LazyFrame,
-    off_scale: Mapping[str, Collection[int]],
-) -> pl.LazyFrame:
+def responses(gss: pl.LazyFrame, read: Mapping[str, Scale]) -> pl.LazyFrame:
     """
     Every respondent's response to each variable, in long format.
 
-    `off_scale` maps each variable to read to its off-scale codes.
+    `read` maps each variable to read to its scale.
     """
     return (
-        gss.select(YEAR, RESPONDENT, *(response(v, c) for v, c in off_scale.items()))
+        gss.select(YEAR, RESPONDENT, *(response(v, s) for v, s in read.items()))
         .unpivot(index=["year", "respondent"], value_name="response")
         .select(
             "year",
@@ -585,8 +551,13 @@ class GSS(Source):
             question_variables(self.name) if variables is None else variables
         )
 
-        if undeclared := [v for v in self.variables if v not in OPINION_SCALES]:
-            raise ValueError(f"GSS variables without a declared scale: {undeclared}")
+        if unassigned := [v for v in self.variables if v not in VARIABLE_SCALES]:
+            raise ValueError(f"GSS variables without an assigned scale: {unassigned}")
+
+    @property
+    @override
+    def scales(self) -> Mapping[str, Scale]:
+        return MappingProxyType({v: VARIABLE_SCALES[v] for v in self.variables})
 
     @override
     def download(self, dest: Path) -> None:
@@ -620,16 +591,14 @@ class GSS(Source):
             )
 
         gss = pl.scan_parquet(raw / DATA_FILE)
-        off_scale = {v: OFF_SCALE_CODES.get(v, frozenset()) for v in self.variables}
 
         return CleanFrames(
             codebook=codebook(
                 gss,
                 variables,
                 pl.scan_parquet(raw / QUESTIONS_FILE),
-                {v: OPINION_SCALES[v] for v in self.variables},
-                off_scale,
+                self.scales,
             ),
             respondents=respondents(gss),
-            responses=responses(gss, off_scale),
+            responses=responses(gss, self.scales),
         )

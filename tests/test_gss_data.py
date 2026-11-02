@@ -13,7 +13,7 @@ import pytest
 
 from spectral_radius.analysis import analysis_frame, survey_data
 from spectral_radius.surveys import DEMOGRAPHICS, GSS, SurveyData, question_variables
-from spectral_radius.surveys.gss import OFF_SCALE_CODES, OPINION_SCALES
+from spectral_radius.surveys.scales import require_labels_match
 
 pytestmark = pytest.mark.data
 
@@ -35,68 +35,54 @@ def responses(data: SurveyData) -> pl.DataFrame:
 
 
 @pytest.fixture(scope="module")
-def labels(data: SurveyData) -> dict[str, list[int]]:
-    """The labeled values of each declared variable."""
-    rows = data.codebook.filter(
-        pl.col("survey") == "gss",
-        pl.col("variable").cast(pl.String).is_in(list(OPINION_SCALES)),
-    ).select(pl.col("variable").cast(pl.String), pl.col("labels").struct.field("value"))
-
-    return dict(rows.iter_rows())
+def codebook(data: SurveyData) -> pl.DataFrame:
+    return data.codebook.filter(pl.col("survey") == "gss")
 
 
-def test_declared_ranges_end_at_labeled_values(labels: dict[str, list[int]]):
-    """Declare ranges whose ends the gss labels."""
-    unlabeled = {
-        (variable, end)
-        for variable, scale in OPINION_SCALES.items()
-        for end in (scale.min, scale.max)
-        if end not in labels[variable]
-    }
+def test_every_variable_read_has_a_scale_matching_its_labels(codebook: pl.DataFrame):
+    """Assign every variable read a scale whose labels the gss publishes."""
+    scales = GSS().scales
 
-    assert not unlabeled
-
-
-def test_labels_outside_declared_ranges_are_off_scale(labels: dict[str, list[int]]):
-    """Declare ranges covering every labeled value but the declared off-scale ones."""
-    outside = {
-        (variable, value)
-        for variable, scale in OPINION_SCALES.items()
-        for value in labels[variable]
-        if not scale.min <= value <= scale.max
-    }
-    off_scale = {
-        (variable, code)
-        for variable, codes in OFF_SCALE_CODES.items()
-        for code in codes
-    }
-
-    assert outside == off_scale
-
-
-def observed_ranges(responses: pl.DataFrame, min_year: int) -> dict[str, tuple]:
-    rows = (
-        responses.filter(pl.col("year") >= min_year)
-        .group_by(pl.col("variable").cast(pl.String))
-        .agg(pl.col("value").min().alias("low"), pl.col("value").max().alias("high"))
+    assert set(codebook.filter("in_responses")["variable"].cast(pl.String)) == set(
+        VARIABLES
     )
-    return {variable: (low, high) for variable, low, high in rows.iter_rows()}
+    require_labels_match(codebook, scales)
+
+
+def test_off_scale_only_where_scale_declares_off_scale_codes(
+    responses: pl.DataFrame,
+):
+    """Read off-scale answers only for variables whose scale declares such codes."""
+    off_scale = set(
+        responses.filter(pl.col("missing") == "off_scale")["variable"].cast(pl.String)
+    )
+    declared = {v for v, s in GSS().scales.items() if s.off_scale}
+
+    assert off_scale <= declared
+
+
+def observed_codes(responses: pl.DataFrame, min_year: int) -> dict[str, set[int]]:
+    rows = (
+        responses.filter(pl.col("year") >= min_year, pl.col("value").is_not_null())
+        .group_by(pl.col("variable").cast(pl.String))
+        .agg(pl.col("value").unique())
+    )
+    return {variable: set(values) for variable, values in rows.iter_rows()}
 
 
 @pytest.mark.parametrize("min_year", [0, GSS.start_year], ids=["all_years", "analysis"])
-def test_observed_ranges_span_declared_ranges(responses: pl.DataFrame, min_year: int):
+def test_observed_codes_are_scale_codes(responses: pl.DataFrame, min_year: int):
     """
-    Observe each variable's whole declared range, and nothing outside it.
+    Observe every code of each variable's scale, and nothing else.
 
-    A narrower observed range would change the analysis
-    from when it scaled the observed range;
-    this lists any such variable.
+    An unobserved code would make the observed-range encoding
+    differ from the default one; this lists any such variable.
     """
-    observed = observed_ranges(responses, min_year)
+    observed = observed_codes(responses, min_year)
     differing = {
-        variable: {"observed": observed[variable], "declared": scale[:2]}
-        for variable, scale in OPINION_SCALES.items()
-        if variable in observed and observed[variable] != scale[:2]
+        variable: {"observed": observed[variable], "scale": scale.codes}
+        for variable, scale in GSS().scales.items()
+        if observed[variable] != set(scale.codes)
     }
 
     assert not differing
@@ -123,7 +109,7 @@ def test_analysis_frame_starts_at_start_year(frame: pl.DataFrame):
 
 
 def test_analysis_frame_scales_variables_to_pm_1(frame: pl.DataFrame):
-    """Scale every variable's valid range, which each spans, onto [-1, 1]."""
+    """Scale every variable onto [-1, 1], with every code observed."""
     variables = frame.select(VARIABLES)
 
     assert variables.min().row(0) == (-1.0,) * len(VARIABLES)

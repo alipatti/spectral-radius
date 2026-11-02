@@ -4,47 +4,46 @@ from collections.abc import Collection, Mapping, Sequence
 
 import polars as pl
 
-from spectral_radius.surveys.encodings import Encoding, scale_valid_range_to_pm_1
-from spectral_radius.surveys.schemas import DEMOGRAPHICS, SurveyData, VariableScale
+from spectral_radius.surveys.encodings import Encoding, scale_code_range_to_pm_1
+from spectral_radius.surveys.schemas import DEMOGRAPHICS, SurveyData
 
 
-def declared_scales(
+def declared_scale_codes(
     data: SurveyData,
     survey: str,
     variables: Sequence[str],
-) -> dict[str, VariableScale]:
-    """The declared scale of each of `variables`, raising for any `survey` doesn't read."""
+) -> dict[str, list[int]]:
+    """The scale codes of each of `variables`, raising for any `survey` doesn't read."""
     rows = data.codebook.filter(
         pl.col("survey") == survey,
         pl.col("in_responses"),
         pl.col("variable").cast(pl.String).is_in(variables),
-    ).select(pl.col("variable").cast(pl.String), "valid", "scale")
-    scales = {
-        variable: VariableScale(valid["min"], valid["max"], scale)
-        for variable, valid, scale in rows.iter_rows()
-    }
+    ).select(pl.col("variable").cast(pl.String), "scale_codes")
+    codes = dict(rows.iter_rows())
 
-    if unread := [v for v in variables if v not in scales]:
+    if unread := [v for v in variables if v not in codes]:
         raise ValueError(f"Survey {survey!r} doesn't read variables {unread}")
 
-    return scales
+    return codes
 
 
 def _require_categorical_allowed(
-    scales: Mapping[str, VariableScale],
+    codes: Mapping[str, Sequence[int]],
     allow_categorical: Collection[str],
 ) -> None:
-    categorical = {v for v, s in scales.items() if s.scale == "categorical"}
+    categorical = {v for v, c in codes.items() if c != sorted(c)}
 
     if disallowed := sorted(categorical.difference(allow_categorical)):
         raise ValueError(
-            f"Variables {disallowed} have categorical scales, "
-            "which encodings treat as ordinal; "
+            f"Variables {disallowed} have scale codes out of scale order, "
+            "which encodings treat as ordered by code; "
             "pass them in `allow_categorical` to accept that"
         )
 
     if stale := sorted(set(allow_categorical).difference(categorical)):
-        raise ValueError(f"Variables {stale} are allowed as categorical but aren't")
+        raise ValueError(
+            f"Variables {stale} are allowed as categorical but their codes are ordered"
+        )
 
 
 def wide(
@@ -52,7 +51,7 @@ def wide(
     survey: str,
     variables: Sequence[str],
     *,
-    encoding: Encoding = scale_valid_range_to_pm_1,
+    encoding: Encoding = scale_code_range_to_pm_1,
     min_year: int | None = None,
     allow_categorical: Collection[str] = (),
 ) -> pl.DataFrame:
@@ -62,15 +61,15 @@ def wide(
     Rows are respondents from `min_year` onward (all years if `None`).
     Every non-answer is null, whatever its `missing` kind.
     `encoding` (see `encodings`) is applied to each variable over those rows,
-    given the variable's declared scale;
-    with the default, it scales each variable's valid range onto [-1, 1].
+    given the variable's scale codes;
+    with the default, it scales the range of the codes onto [-1, 1].
     Every variable must be one the survey reads,
-    and those with categorical scales must be named in `allow_categorical`,
-    since encodings treat codes as ordered.
+    and those whose scale codes are out of scale order
+    must be named in `allow_categorical`, since encodings treat codes as ordered.
     """
     variables = list(dict.fromkeys(variables))
-    scales = declared_scales(data, survey, variables)
-    _require_categorical_allowed(scales, allow_categorical)
+    codes = declared_scale_codes(data, survey, variables)
+    _require_categorical_allowed(codes, allow_categorical)
 
     in_survey = pl.col("survey") == survey
     in_years = pl.lit(True) if min_year is None else pl.col("year") >= min_year
@@ -96,7 +95,7 @@ def wide(
         .select(
             "year",
             *DEMOGRAPHICS,
-            *(pl.col(v).pipe(encoding, scales[v]) for v in variables),
+            *(pl.col(v).pipe(encoding, codes[v]) for v in variables),
             "w",
         )
     )

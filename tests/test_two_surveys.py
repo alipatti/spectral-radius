@@ -11,7 +11,7 @@ import numpy as np
 import plotnine as pn
 import polars as pl
 import pytest
-from helpers import codebook_rows, frame
+from helpers import codebook_rows, frame, unlabeled_scale
 
 from spectral_radius import __main__ as cli
 from spectral_radius import analysis, appendix, spectral
@@ -19,9 +19,9 @@ from spectral_radius.surveys import (
     CleanFrames,
     Codebook,
     Responses,
+    Scale,
     Source,
     SurveyData,
-    VariableScale,
     load,
     pipeline,
     question_sets,
@@ -42,7 +42,7 @@ class SyntheticSource(Source):
 
     demographics = frozenset()
     start_year = 2000
-    scales: ClassVar[Mapping[str, VariableScale]]
+    scales: ClassVar[Mapping[str, Scale]]
     demographic: ClassVar[str]
     categories: ClassVar[pl.Enum]
     seed: ClassVar[int]
@@ -67,8 +67,8 @@ class SyntheticSource(Source):
             }
         )
 
-        def answer(variable: str, scale: VariableScale) -> list[dict]:
-            values = rng.integers(scale.min, scale.max + 1, len(years))
+        def answer(variable: str, scale: Scale) -> list[dict]:
+            values = rng.choice(scale.codes, len(years))
             dont_know = rng.random(len(years)) < 0.1
 
             return [
@@ -102,8 +102,8 @@ class SurveyX(SyntheticSource):
     demographics = frozenset({"sex"})
     scales = MappingProxyType(
         {
-            "q": VariableScale(0, 10, "ordinal"),
-            "r": VariableScale(1, 2, "binary"),
+            "q": unlabeled_scale("zero_to_ten", range(11)),
+            "r": unlabeled_scale("one_two", [1, 2]),
         }
     )
     demographic = "sex"
@@ -116,8 +116,8 @@ class SurveyY(SyntheticSource):
     demographics = frozenset({"race"})
     scales = MappingProxyType(
         {
-            "q": VariableScale(1, 5, "ordinal"),
-            "s": VariableScale(1, 3, "ordinal"),
+            "q": unlabeled_scale("one_to_five", range(1, 6)),
+            "s": unlabeled_scale("one_to_three", range(1, 4)),
         }
     )
     demographic = "race"
@@ -148,7 +148,7 @@ def test_wide_keeps_only_the_surveys_respondents_and_scale(
     variables: list[str],
     scale: tuple[int, int],
 ):
-    """Give each survey's respondents, encoding `q` by that survey's valid range."""
+    """Give each survey's respondents, encoding `q` by that survey's scale."""
     out = wide(data, survey, variables)
     raw = data.responses.filter(pl.col("survey") == survey, pl.col("variable") == "q")
     low, high = scale

@@ -12,14 +12,22 @@ from spectral_radius.surveys import (
     Responses,
     SurveyData,
 )
-from spectral_radius.surveys.schemas import UNRECORDED, VariableScale
+from spectral_radius.surveys.scales import Scale, unlabeled
+from spectral_radius.surveys.schemas import UNRECORDED
 
 type Rows = Sequence[Mapping[str, Any]]
 
 # the kind given to the responses `survey_data` fills in
 FILLER = "no_answer"
+
+
+def unlabeled_scale(name: str, codes: Iterable[int]) -> Scale:
+    """A scale of `codes`, in the order given, none of them labeled."""
+    return Scale(name, tuple(map(unlabeled, codes)))
+
+
 # a scale wide enough for any test value, for variables not given their own
-WIDE_SCALE = VariableScale(0, 100, "ordinal")
+WIDE_SCALE = unlabeled_scale("wide", range(101))
 
 
 def frame(schema: type[Codebook | Respondents | Responses], rows: Rows) -> pl.DataFrame:
@@ -32,7 +40,7 @@ def codebook_rows(
     variables: Sequence[str],
     kinds: Iterable[str] = (),
     *,
-    scale: VariableScale | None = WIDE_SCALE,
+    scale: Scale | None = WIDE_SCALE,
 ) -> list[dict[str, Any]]:
     """
     Codebook rows listing each of `kinds` as a missing code named after itself.
@@ -49,8 +57,8 @@ def codebook_rows(
             "labels": {"value": [], "label": []},
             "missing": {"code": kinds, "label": kinds, "kind": kinds},
             "in_responses": scale is not None,
-            "valid": scale and {"min": scale.min, "max": scale.max},
-            "scale": scale and scale.scale,
+            "scale": scale and scale.name,
+            "scale_codes": scale and scale.codes,
         }
         for v in variables
     ]
@@ -91,7 +99,7 @@ def survey_data(
     respondents: Rows,
     responses: Rows,
     demographics: Mapping[str, frozenset[str]] | None = None,
-    scales: Mapping[tuple[str, str], VariableScale] | None = None,
+    scales: Mapping[tuple[str, str], Scale] | None = None,
 ) -> SurveyData:
     """
     Validated data, with `responses` completed with `FILLER` rows.

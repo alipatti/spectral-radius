@@ -9,17 +9,17 @@ from polars.testing import assert_frame_equal, assert_series_equal
 
 from spectral_radius.surveys import DEMOGRAPHICS, GSS, Respondents
 from spectral_radius.surveys.gss import (
-    OPINION_SCALES,
     QUESTIONS_SCHEMA,
+    VARIABLE_SCALES,
     VARIABLES_SCHEMA,
-    YES_NO,
     codebook,
     respondents,
     responses,
     variables_table,
 )
 from spectral_radius.surveys.question_sets import question_variables
-from spectral_radius.surveys.schemas import MISSING, VariableScale
+from spectral_radius.surveys.scales import COURTS_HARSHNESS, YES_NO, Scale, level
+from spectral_radius.surveys.schemas import MISSING
 
 RAW_DEMOGRAPHICS = [
     "sex",
@@ -37,6 +37,12 @@ RAW_DEMOGRAPHICS = [
     "xnorcsiz",
 ]
 NO_BA = "No Bachelor's degree"
+# yes and no, with "maybe" (3) and "other" (5) off the scale
+YES_NO_MAYBE = Scale(
+    "yes_no_maybe",
+    (level(1, "yes"), level(2, "no")),
+    off_scale=(level(5, "other"), level(3, "maybe")),
+)
 BA = "Bachelor's degree or more"
 
 
@@ -179,7 +185,7 @@ def test_responses_keep_every_respondent_and_variable():
     )
 
     assert_frame_equal(
-        responses(raw, {"q": ()}).collect(),
+        responses(raw, {"q": YES_NO}).collect(),
         pl.DataFrame(
             {
                 "year": [2000] * 3,
@@ -213,7 +219,7 @@ def test_responses_map_missing_codes_to_kinds(code: str | None, kind: str):
         q_null=pl.Series([code], dtype=pl.String),
     )
 
-    assert responses(raw, {"q": ()}).collect()["missing"].to_list() == [kind]
+    assert responses(raw, {"q": YES_NO}).collect()["missing"].to_list() == [kind]
 
 
 def test_responses_reject_unknown_missing_code():
@@ -224,7 +230,7 @@ def test_responses_reject_unknown_missing_code():
     )
 
     with pytest.raises(pl.exceptions.InvalidOperationError):
-        responses(raw, {"q": ()}).collect()
+        responses(raw, {"q": YES_NO}).collect()
 
 
 def test_codebook_years_and_labels():
@@ -243,7 +249,7 @@ def test_codebook_years_and_labels():
     )
 
     q = (
-        codebook(raw, variables, questions([]), {"q": YES_NO}, {})
+        codebook(raw, variables, questions([]), {"q": YES_NO})
         .collect()
         .row(1, named=True)
     )
@@ -258,7 +264,7 @@ def test_codebook_years_and_labels():
 
 
 def test_codebook_lists_off_scale_codes_after_missing_codes():
-    """List each labeled off-scale code as a missing code of kind `off_scale`."""
+    """List each labeled off-scale code of the scale as a missing code, in order."""
     raw = pl.LazyFrame({"year": [2000], "q": [1]})
     variables = pl.LazyFrame(
         {
@@ -272,7 +278,7 @@ def test_codebook_lists_off_scale_codes_after_missing_codes():
         schema=VARIABLES_SCHEMA,
     )
 
-    q = codebook(raw, variables, questions([]), {}, {"q": {5, 3}}).collect()
+    q = codebook(raw, variables, questions([]), {"q": YES_NO_MAYBE}).collect()
 
     assert q.row(0, named=True)["missing"] == {
         "code": [".d", "3", "5"],
@@ -288,7 +294,7 @@ def test_responses_move_off_scale_codes_out_of_value():
         q_null=pl.Series([None, None, ".d"]),
     )
 
-    out = responses(raw, {"q": {5}}).collect()
+    out = responses(raw, {"q": YES_NO_MAYBE}).collect()
 
     assert out.select("value", "missing").rows() == [
         (1, None),
@@ -297,33 +303,45 @@ def test_responses_move_off_scale_codes_out_of_value():
     ]
 
 
+def test_responses_keep_undeclared_codes_as_values():
+    """Keep a code neither on the scale nor off it, so validation rejects it."""
+    raw = raw_gss({"sex": [1]}).with_columns(
+        q=pl.Series([7], dtype=pl.Int8),
+        q_null=pl.Series([None], dtype=pl.String),
+    )
+
+    out = responses(raw, {"q": YES_NO_MAYBE}).collect()
+
+    assert out.select("value", "missing").rows() == [(7, None)]
+
+
 def test_codebook_marks_variables_read_with_their_scales():
-    """Mark exactly the variables read, giving only them a valid range and scale."""
+    """Mark exactly the variables read, giving only them a scale and its codes."""
     raw = pl.LazyFrame({"year": [2000], "q": [1], "r": [2]})
     variables = pl.LazyFrame(
         [{"variable": v} for v in ["year", "q", "r"]],
         schema=VARIABLES_SCHEMA,
     ).with_columns(cs.list().fill_null([]))
-    read = {"q": VariableScale(1, 7, "ordinal"), "r": YES_NO}
+    read = {"q": COURTS_HARSHNESS, "r": YES_NO}
 
-    result = codebook(raw, variables, questions([]), read, {}).collect()
+    result = codebook(raw, variables, questions([]), read).collect()
 
-    assert result.select("in_responses", "valid", "scale").rows() == [
+    assert result.select("in_responses", "scale", "scale_codes").rows() == [
         (False, None, None),
-        (True, {"min": 1, "max": 7}, "ordinal"),
-        (True, {"min": 1, "max": 2}, "binary"),
+        (True, "courts_harshness", [1, 3, 2]),
+        (True, "yes_no", [1, 2]),
     ]
 
 
-def test_rejects_variable_without_declared_scale():
-    """Refuse to read a variable whose scale isn't declared."""
-    with pytest.raises(ValueError, match="without a declared scale"):
+def test_rejects_variable_without_assigned_scale():
+    """Refuse to read a variable that isn't assigned a scale."""
+    with pytest.raises(ValueError, match="without an assigned scale"):
         GSS(variables=["abany", "undeclared"])
 
 
-def test_declares_scale_of_every_question_set_variable():
-    """Declare a scale for every variable the question sets name."""
-    assert set(question_variables("gss")) <= OPINION_SCALES.keys()
+def test_assigns_scale_to_every_question_set_variable():
+    """Assign a scale to every variable the question sets name."""
+    assert set(question_variables("gss")) <= VARIABLE_SCALES.keys()
 
 
 def test_codebook_question_text_matches_differently_named_variables():
@@ -335,7 +353,7 @@ def test_codebook_question_text_matches_differently_named_variables():
     ).with_columns(cs.list().fill_null([]))
     published = questions([("id_", "Respondent id"), ("RACDIF1", "Differences?")])
 
-    result = codebook(raw, variables, published, {}, {}).collect()
+    result = codebook(raw, variables, published, {}).collect()
 
     assert result["question"].to_list() == ["Respondent id", "Differences?", None]
 

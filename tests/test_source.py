@@ -1,10 +1,10 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import override
 
 import polars as pl
 import pytest
-from helpers import codebook_rows, frame
+from helpers import WIDE_SCALE, codebook_rows, frame
 from polars.testing import assert_frame_equal
 
 from spectral_radius.surveys import (
@@ -12,11 +12,13 @@ from spectral_radius.surveys import (
     CleanFrames,
     Codebook,
     Responses,
+    Scale,
     Source,
     build,
     load,
     pipeline,
 )
+from spectral_radius.surveys.scales import YES_NO
 from spectral_radius.surveys.schemas import RACE, SEX
 
 MALE = pl.Series("sex", ["Male"], dtype=SEX)
@@ -27,6 +29,7 @@ class FakeSource(Source):
     A source whose 'download' writes a tiny survey, counting each call.
 
     It declares only `sex`; its one respondent has `demographic_columns`.
+    Its one variable, `q`, is unlabeled and declared on `scale`.
     """
 
     name = "fake"
@@ -39,11 +42,18 @@ class FakeSource(Source):
         *,
         fail: bool = False,
         demographic_columns: Sequence[pl.Series] = (MALE,),
+        scale: Scale = WIDE_SCALE,
     ) -> None:
         super().__init__(root)
         self.fail = fail
         self.demographic_columns = demographic_columns
+        self.scale = scale
         self.downloads = 0
+
+    @property
+    @override
+    def scales(self) -> Mapping[str, Scale]:
+        return {"q": self.scale}
 
     @override
     def download(self, dest: Path) -> None:
@@ -59,7 +69,9 @@ class FakeSource(Source):
             return frame(schema, [{"survey": "", **row} for row in rows]).drop("survey")
 
         return CleanFrames(
-            codebook=without_survey(Codebook, codebook_rows("", ["q"])),
+            codebook=without_survey(
+                Codebook, codebook_rows("", ["q"], scale=self.scale)
+            ),
             respondents=pl.DataFrame(
                 {"year": [2000], "respondent": [1], "weight": [1.0]}
             ).with_columns(self.demographic_columns),
@@ -178,6 +190,14 @@ def test_load_rejects_respondents_not_matching_declaration(
     source = FakeSource(tmp_path, demographic_columns=columns)
 
     with pytest.raises(ValueError, match=rf"Source 'fake' .*{message}"):
+        source.load()
+
+
+def test_load_rejects_labels_disagreeing_with_scale(tmp_path: Path):
+    """Refuse to load a variable whose published labels its scale doesn't match."""
+    source = FakeSource(tmp_path, scale=YES_NO)
+
+    with pytest.raises(ValueError, match=r"q: code 1 is unlabeled.*'yes_no'"):
         source.load()
 
 

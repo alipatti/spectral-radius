@@ -3,13 +3,14 @@
 import shutil
 import tempfile
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import ClassVar, NamedTuple, Never
 
 import polars as pl
 from loguru import logger
 
+from spectral_radius.surveys.scales import Scale, require_labels_match
 from spectral_radius.surveys.schemas import DEMOGRAPHICS, SurveyData
 
 DATA_ROOT = Path("data")
@@ -31,9 +32,11 @@ class Source(ABC):
 
     Subclasses implement `download` and `clean`,
     declare the `demographics` they provide,
-    and the `start_year` from which the analysis uses their respondents;
+    the `start_year` from which the analysis uses their respondents,
+    and the `scales` of the variables they read;
     `fetch` caches the raw files under `<root>/raw/<name>/`
-    and `load` validates the cleaned frames.
+    and `load` validates the cleaned frames,
+    checking the codebook's labels against the `scales`.
     Cleaned respondents have only the key, weight, and declared demographics;
     `load` adds the other demographics as nulls.
     """
@@ -61,6 +64,11 @@ class Source(ABC):
     def raw_dir(self) -> Path:
         return self.root / "raw" / self.name
 
+    @property
+    @abstractmethod
+    def scales(self) -> Mapping[str, Scale]:
+        """The scale of each variable read into responses."""
+
     @abstractmethod
     def download(self, dest: Path) -> None:
         """Write the raw files into the empty directory `dest`."""
@@ -74,13 +82,15 @@ class Source(ABC):
         responses hold a row for every respondent and variable read,
         with each missing code moved out of `value`
         into the `missing` kind the source maps it to
-        (`unrecorded` for a missing value without a code).
-        The codebook lists each variable's codes, labels, and kinds.
+        (`unrecorded` for a missing value without a code),
+        and each of the scale's off-scale codes into kind `off_scale`.
+        The codebook lists each variable's codes, labels, and kinds,
+        and the scale of each variable read (see `schemas.read_columns`).
         """
         # NOTE: a missing code left in `value` fails validation only if it
-        # lies outside the variable's declared valid range; for surveys whose
-        # missing codes are ordinary integers (e.g. anes' 0, 8, 9) one inside
-        # the range (e.g. 0 on a 0-to-10 scale) would count as an answer
+        # isn't a code of the variable's scale; for surveys whose missing codes
+        # are ordinary integers (e.g. anes' 0, 8, 9) one that is a scale code
+        # (e.g. 0 on a 0-to-10 scale) would count as an answer
 
     def fetch(self, *, refresh: bool = False) -> Path:
         """Return the directory of raw files, downloading them if not cached."""
@@ -117,8 +127,11 @@ class Source(ABC):
         """Fetch, clean, and validate this source's data."""
         survey = pl.lit(self.name, dtype=pl.Categorical).alias("survey")
         frames = self.clean(self.fetch(refresh=refresh))
+        codebook = frames.codebook.lazy().collect()
+        require_labels_match(codebook, self.scales)
         frames = frames._replace(
-            respondents=self._pad_demographics(frames.respondents.lazy().collect())
+            codebook=codebook,
+            respondents=self._pad_demographics(frames.respondents.lazy().collect()),
         )
 
         return SurveyData.validate(
