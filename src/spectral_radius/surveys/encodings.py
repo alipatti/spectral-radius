@@ -3,41 +3,16 @@ Encodings of survey responses as numbers, for `wide`.
 
 Each maps a variable's answers, as their positions on its scale
 (`0` to `n_levels - 1`, in scale order; one column over the rows of the wide frame),
-and the scale's number of levels to analysis values;
-`ranks_at_t0` also reads the `year` and weight `w` columns.
+and the scale's number of levels to analysis values.
 """
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 
 import polars as pl
 
 type Encoding = Callable[[pl.Expr, int], pl.Expr]
 
 # TODO: determine appropriate scaling for these
-
-
-def ranks_at_t0(x: pl.Expr, _n_levels: int) -> pl.Expr:
-    x_at_t0 = x.filter(year=pl.col("year").min())
-
-    def ranks(xw: Sequence[pl.Series]) -> pl.Series:
-        df = pl.DataFrame(xw)
-        assert df.columns == ["x", "w"], df.columns
-
-        rank = (
-            pl.col("w")
-            .cum_sum()
-            .sub(0.5 * pl.col("w"))
-            .truediv(pl.col("w").sum())
-            .alias("rank")
-        )
-        return (
-            df.group_by("x").agg(pl.col("w").sum()).sort("x").with_columns(rank)["rank"]
-        )
-
-    return x.replace_strict(
-        old=x_at_t0.unique().sort(),
-        new=pl.map_batches([x.alias("x"), "w"], ranks, return_dtype=pl.Float64),
-    )
 
 
 def unit_variance_at_t0(x: pl.Expr, _n_levels: int) -> pl.Expr:
